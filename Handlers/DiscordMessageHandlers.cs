@@ -23,9 +23,9 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             var guildId = textChannel.Guild.Id;
             var channelId = textChannel.Id;
 
-            if (discordBot.ActiveSessions.ContainsKey(channelId))
+            if (discordBot.ActiveSessions.TryGetValue(channelId, out Sessions.ActiveBotSession? Session))
             {
-                RelayMessageToArchipelago(message, discordBot.ActiveSessions[channelId], discordBot);
+                await RelayMessageToArchipelago(message, Session, discordBot);
             }
         }
 
@@ -34,13 +34,12 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         // This results in messages being duplicated in the Discord chat.
         // Ideally, I want to avoid posting a message to Discord if it originated 
         // from the same channel, but I can't think of a good way to track that. 
-        public static async void RelayMessageToArchipelago(SocketMessage message, Sessions.ActiveBotSession activeBotSession, DiscordBotData.DiscordBot discordBot)
+        public static async Task RelayMessageToArchipelago(SocketMessage message, Sessions.ActiveBotSession activeBotSession, DiscordBotData.DiscordBot discordBot)
         {
             if (string.IsNullOrWhiteSpace(message.Content)) { return; }
             string Message = $"[Discord: {message.Author.Username}] {message.Content}";
             try
             {
-                // Send the message to the Archipelago server
                 await activeBotSession.archipelagoSession.Socket.SendPacketAsync(new SayPacket() { Text = Message });
                 Console.WriteLine($"Message sent to Archipelago from {message.Author.Username} in {message.Channel.Name}: {message.Content}");
             }
@@ -48,7 +47,6 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             {
                 Console.WriteLine($"Failed to send message to Archipelago: {ex.Message}");
                 discordBot.QueueSimpleMessage(activeBotSession.DiscordChannel, $"Error: Unable to send message to the Archipelago server.\n{ex.Message}");
-                //await textChannel.SendMessageAsync("Error: Unable to send message to the Archipelago server.");
             }
         }
     }

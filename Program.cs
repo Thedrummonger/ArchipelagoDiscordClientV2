@@ -1,14 +1,6 @@
-﻿using Discord;
-using Discord.WebSocket;
-using Archipelago.MultiClient.Net;
-using Discord.Net;
-using System.Text;
-using Archipelago.MultiClient.Net.Packets;
-using Archipelago.MultiClient.Net.Enums;
-using System.Text.RegularExpressions;
-using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
-using ArchipelagoDiscordClientLegacy.Handlers;
+﻿using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using ArchipelagoDiscordClientLegacy.Data;
+using TDMUtils;
 
 namespace ArchipelagoDiscordClient
 {
@@ -22,7 +14,15 @@ namespace ArchipelagoDiscordClient
 
         public async Task RunBotAsync()
         {
-            var Config = TDMUtils.DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConfigFile, new AppSettings(), true);
+            var Config = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConfigFile, new AppSettings(), true);
+            if (Config.BotToken.IsNullOrWhiteSpace()) 
+            {
+                Console.WriteLine("Please enter your bot key:");
+                var key = Console.ReadLine()??"";
+                Config.BotToken = key;
+                File.WriteAllText(Constants.Paths.ConfigFile, Config.ToFormattedJson());
+            }
+            if (Config.BotToken.IsNullOrWhiteSpace()) { throw new Exception($"Bot key not valid"); }
             DiscordBot BotClient = new DiscordBot(Config);
 
             BotClient.GetClient().Ready += BotClient.commandRegistry.Initialize;

@@ -1,17 +1,11 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
     public class MessageQueueHandler(DiscordBotData.DiscordBot discordBot)
     {
-        public Dictionary<ulong, Queue<MessageQueue.QueuedMessage>> MessageQueue = [];
+        public Dictionary<ulong, Queue<MessageQueueData.QueuedMessage>> MessageQueue = [];
         public async Task ProcessMessageQueueAsync()
         {
             //Discord only allows 50 api calls per second, or 1 every 20 milliseconds
@@ -24,27 +18,41 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 {
                     if (queue.Count > 0)
                     {
-                        SocketTextChannel? channel = queue.Peek().Channel;
-                        List<string> sendBatch = new();
-                        while (queue.Count > 0 && GetFinalMessage(sendBatch).Length < 2000)
+                        Console.WriteLine($"Queue had {queue.Count}");
+                        var firstItem = queue.Peek();
+                        if (firstItem.Channel is not SocketTextChannel channel) { throw new Exception("Channel from Queue was null, this should not happen!"); }
+                        List<string> sendBatch = [];
+                        int currentSize = Formatter.Item1.Length + Formatter.Item2.Length; // Start with the size of the formatter
+                        while (queue.Count > 0)
                         {
+                            //Account for the separator if this isn't the first message in the batch
+                            int Padding = sendBatch.Count > 0 ? LineSeparator.Length : 0;
+                            int nextMessageSize = queue.Peek().Message.Length + Padding;
+                            //Break the loop if the message would go over the Discord message char limit
+                            if (currentSize + nextMessageSize > DiscordMessageLimit) break; 
                             sendBatch.Add(queue.Dequeue().Message);
+                            currentSize += nextMessageSize;
                         }
+
                         var formattedMessage = GetFinalMessage(sendBatch);
-                        if (channel is null) { throw new Exception("Channel from Queue was null, this should not happen!"); }
+                        Console.WriteLine($"Sending Final message of size {formattedMessage.Length}");
                         _ = channel.SendMessageAsync(formattedMessage);
                         await Task.Delay(discordBot.appSettings.DiscordRateLimitDelay);
                     }
                 }
                 //Wait before processing more messages to avoid rate limit
-                //This await could probably be removed? or at least significantly lowered. 
+                //TODO: This await could probably be removed?
                 await Task.Delay(discordBot.appSettings.DiscordRateLimitDelay);
             }
         }
 
+        private static readonly Tuple<string, string> Formatter = new("```ansi\n", "\n```");
+        private static readonly string LineSeparator = "\n\n";
+        private static readonly int DiscordMessageLimit = 2000;
+
         private static string GetFinalMessage(List<string> sendBatch)
         {
-            return $"```ansi\n{string.Join("\n\n", sendBatch)}\n```";
+            return $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}";
         }
     }
 }

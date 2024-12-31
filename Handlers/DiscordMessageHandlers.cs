@@ -1,12 +1,6 @@
 ﻿using Archipelago.MultiClient.Net.Packets;
 using ArchipelagoDiscordClientLegacy.Data;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
@@ -37,7 +31,8 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         public static async Task RelayMessageToArchipelago(SocketMessage message, Sessions.ActiveBotSession activeBotSession, DiscordBotData.DiscordBot discordBot)
         {
             if (string.IsNullOrWhiteSpace(message.Content)) { return; }
-            string Message = $"[Discord: {message.Author.Username}] {message.Content}";
+
+            string Message = $"[Discord: {message.Author.Username}] {message.Content}]";
             try
             {
                 await activeBotSession.archipelagoSession.Socket.SendPacketAsync(new SayPacket() { Text = Message });
@@ -46,7 +41,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to send message to Archipelago: {ex.Message}");
-                discordBot.QueueSimpleMessage(activeBotSession.DiscordChannel, $"Error: Unable to send message to the Archipelago server.\n{ex.Message}");
+                discordBot.QueueMessage(activeBotSession.DiscordChannel, $"Error: Unable to send message to the Archipelago server.\n{ex.Message}");
             }
         }
     }

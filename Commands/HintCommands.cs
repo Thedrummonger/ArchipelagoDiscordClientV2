@@ -1,15 +1,9 @@
 ﻿using Archipelago.MultiClient.Net.Enums;
-using ArchipelagoDiscordClient;
 using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
-using static ArchipelagoDiscordClientLegacy.Data.MessageQueue;
+using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
@@ -77,7 +71,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             await command.RespondAsync($"Hints for {session.archipelagoSession.Players.GetPlayerName(session.archipelagoSession.ConnectionInfo.Slot)}", ephemeral: false);
             foreach (var i in Messages)
             {
-                MessageQueue.QueueMessage(i, discordBot);
+                Console.WriteLine($"Queueing {i.Message}");
+                MessageQueueData.QueueMessage(i, discordBot);
             }
         }
     }

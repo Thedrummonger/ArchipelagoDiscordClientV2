@@ -1,10 +1,5 @@
 ﻿using Archipelago.MultiClient.Net;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ArchipelagoDiscordClientLegacy.Data
 {
@@ -12,8 +7,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
     {
         public class ActiveBotSession
         {
-            public SocketTextChannel DiscordChannel;
-            public ArchipelagoSession archipelagoSession;
+            public required SocketTextChannel DiscordChannel;
+            public required ArchipelagoSession archipelagoSession;
+            public Dictionary<SocketUser, HashSet<string>> SlotAssociations = [];
+            public string? OriginalChannelName = null;
         }
     }
 }

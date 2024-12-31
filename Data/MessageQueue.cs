@@ -1,23 +1,18 @@
 ﻿using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TDMUtils;
 
 namespace ArchipelagoDiscordClientLegacy.Data
 {
-    public static class MessageQueue
+    public static class MessageQueueData
     {
         public class QueuedMessage
         {
-            public SocketTextChannel? Channel = null;
-            public string Message = "";
+            public required SocketTextChannel? Channel = null;
+            public required string Message = "";
             public string RawMessage = "";
             public SocketUser? UserToPing = null;
         }
-        public static QueuedMessage CreateSimpleQueuedMessage(string Message, SocketTextChannel channel)
+        public static QueuedMessage CreateSimpleQueuedMessage(this SocketTextChannel channel, string Message)
         {
             return new QueuedMessage
             {
@@ -27,10 +22,6 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 UserToPing = null
             };
         }
-        public static QueuedMessage CreateSimpleQueuedMessage(this SocketTextChannel channel, string Message)
-        {
-            return CreateSimpleQueuedMessage(Message, channel);
-        }
 
         public static void QueueMessage(this DiscordBotData.DiscordBot discordBot, QueuedMessage Message)
         {
@@ -39,7 +30,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
         }
         public static void QueueMessage(this QueuedMessage Message, DiscordBotData.DiscordBot discordBot) => discordBot.QueueMessage(Message);
 
-        public static void QueueSimpleMessage(this DiscordBotData.DiscordBot discordBot, SocketTextChannel channel, string Message) =>
-            discordBot.QueueMessage(CreateSimpleQueuedMessage(Message, channel));
+        public static void QueueMessage(this DiscordBotData.DiscordBot discordBot, SocketTextChannel channel, string Message) =>
+            discordBot.QueueMessage(channel.CreateSimpleQueuedMessage(Message));
+
+        public static void QueueMessage(this SocketTextChannel channel, DiscordBotData.DiscordBot discordBot, string Message) =>
+            discordBot.QueueMessage(channel.CreateSimpleQueuedMessage(Message));
     }
 }

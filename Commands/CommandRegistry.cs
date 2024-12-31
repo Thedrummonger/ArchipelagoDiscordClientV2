@@ -91,6 +91,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             commandRegistry.AddCommand("show_hints")
                 .SetProperties(new SlashCommandBuilder()
                     .WithDescription("Shows all hint for the current player")
+                    .AddOption("player", ApplicationCommandOptionType.String, "Player to get Hints for, defaults to connected player", false)
                 ).SetExecutionFunc(HintCommands.HandleShowHintsCommand);
 
             commandRegistry.AddCommand("show_sessions")

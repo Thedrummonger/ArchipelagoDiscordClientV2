@@ -25,9 +25,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 return;
             }
 
-            Console.WriteLine($"Showing hints for slot {session.archipelagoSession.ConnectionInfo.Slot}");
+            var TargetPlayer = session.archipelagoSession.Players.ActivePlayer;
+            var PlayerNameArg = Data.GetArg("player")?.Value;
+            if (PlayerNameArg is string PlayerNameString) 
+            { 
+                TargetPlayer = session.archipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == PlayerNameString);
+            }
 
-            var hints = session.archipelagoSession.DataStorage.GetHints();
+            if (TargetPlayer == null)
+            {
+                await command.RespondAsync($"{PlayerNameArg} was not a valid player", ephemeral: true);
+                return;
+            }
+
+            Console.WriteLine($"Showing hints for player {TargetPlayer.Name} [{TargetPlayer.Slot}]");
+
+            var hints = session.archipelagoSession.DataStorage.GetHints(TargetPlayer.Slot);
             Console.WriteLine($"{hints.Length} Found");
             List<QueuedMessage> Messages = [];
             foreach (var hint in hints)
@@ -51,11 +64,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 Location = Location.SetColor(Archipelago.MultiClient.Net.Models.Color.Green);
 
-                FindingPlayerName = FindingPlayer.Slot == session.archipelagoSession.ConnectionInfo.Slot ?
+                FindingPlayerName = FindingPlayer.Slot == TargetPlayer.Slot ?
                     FindingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Magenta) :
                     FindingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Yellow);
 
-                ReceivingPlayerName = ReceivingPlayer.Slot == session.archipelagoSession.ConnectionInfo.Slot ?
+                ReceivingPlayerName = ReceivingPlayer.Slot == TargetPlayer.Slot ?
                     ReceivingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Magenta) :
                     ReceivingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Yellow);
                 string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} ({FoundString})";
@@ -68,7 +81,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 return;
             }
 
-            await command.RespondAsync($"Hints for {session.archipelagoSession.Players.GetPlayerName(session.archipelagoSession.ConnectionInfo.Slot)}", ephemeral: false);
+            await command.RespondAsync($"Hints for {TargetPlayer.Name} playing {TargetPlayer.Game}", ephemeral: false);
             foreach (var i in Messages)
             {
                 Console.WriteLine($"Queueing {i.Message}");

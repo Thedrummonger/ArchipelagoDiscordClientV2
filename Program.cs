@@ -15,6 +15,7 @@ namespace ArchipelagoDiscordClient
 
         public async Task RunBotAsync()
         {
+            if (!Path.Exists(Constants.Paths.BaseFilePath)) { Directory.CreateDirectory(Constants.Paths.BaseFilePath); }
             var Config = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConfigFile, new AppSettings(), true);
             if (Config.BotToken.IsNullOrWhiteSpace()) 
             {

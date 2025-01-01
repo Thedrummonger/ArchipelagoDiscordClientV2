@@ -1,5 +1,9 @@
 ﻿using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.MessageLog.Messages;
+using Archipelago.MultiClient.Net.MessageLog.Parts;
 using ArchipelagoDiscordClientLegacy.Data;
+using Discord.WebSocket;
+using System.Linq;
 using System.Text;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
@@ -16,16 +20,16 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             if (session.archipelagoSession.Socket.Connected) { await session.archipelagoSession.Socket.DisconnectAsync(); }
         }
 
-        public static void CreateArchipelagoHandlers(this ArchipelagoSession session, DiscordBot discordBot, CommandData.CommandDataModel Data)
+        public static void CreateArchipelagoHandlers(this ArchipelagoSession session, DiscordBot discordBot, Sessions.ActiveBotSession BotSession)
         {
             session.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
             session.Socket.SocketClosed += async (reason) =>
             {
-                if (!discordBot.ActiveSessions.ContainsKey(Data.channelId)) { return; } //Bot was disconnected already
-                await CleanAndCloseChannel(discordBot, Data.channelId);
-                discordBot.QueueMessage(Data.socketTextChannel!, $"Connection closed:\n{reason}");
+                if (!discordBot.ActiveSessions.ContainsKey(BotSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
+                await CleanAndCloseChannel(discordBot, BotSession.DiscordChannel.Id);
+                discordBot.QueueMessage(BotSession.DiscordChannel!, $"Connection closed:\n{reason}");
             };
-            void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
+            void MessageLog_OnMessageReceived(LogMessage message)
             {
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, discordBot)) { return; }
                 StringBuilder FormattedMessage = new StringBuilder();
@@ -38,15 +42,28 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 }
                 if (string.IsNullOrWhiteSpace(FormattedMessage.ToString())) { return; }
 
+                HashSet<SocketUser> ToPing = [];
+
+                if (message is ItemSendLogMessage itemSendMessage && 
+                    itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)
+                    && itemSendMessage.Receiver.Slot != itemSendMessage.Sender.Slot)
+                {
+                    foreach (var i in BotSession.SlotAssociations.Where(x => x.Value.Contains(itemSendMessage.Receiver.Name)))
+                    {
+                        ToPing.Add(i.Key);
+                        ToPing.Add(i.Key);
+                    }
+                }
+
                 Console.WriteLine($"Queueing message from AP session " +
                     $"{session.Socket.Uri} {session.Players.GetPlayerName(session.ConnectionInfo.Slot)} {session.ConnectionInfo.Game}");
 
                 MessageQueueData.QueuedMessage queuedMessage = new MessageQueueData.QueuedMessage()
                 {
-                    Channel = Data.socketTextChannel,
+                    Channel = BotSession.DiscordChannel,
                     Message = FormattedMessage.ToString(),
                     RawMessage = RawMessage.ToString(),
-                    UserToPing = null
+                    UsersToPing = ToPing
                 };
                 MessageQueueData.QueueMessage(queuedMessage, discordBot);
             }

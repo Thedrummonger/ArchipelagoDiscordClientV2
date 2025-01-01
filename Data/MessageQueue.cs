@@ -10,7 +10,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public required SocketTextChannel? Channel = null;
             public required string Message = "";
             public string RawMessage = "";
-            public SocketUser? UserToPing = null;
+            public HashSet<SocketUser> UsersToPing = [];
         }
         public static QueuedMessage CreateSimpleQueuedMessage(this SocketTextChannel channel, string Message)
         {
@@ -19,7 +19,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 Message = Message,
                 RawMessage = Message,
                 Channel = channel,
-                UserToPing = null
+                UsersToPing = []
             };
         }
 

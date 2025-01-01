@@ -18,24 +18,28 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 {
                     if (queue.Count > 0)
                     {
-                        Console.WriteLine($"Queue had {queue.Count}");
-                        var firstItem = queue.Peek();
-                        if (firstItem.Channel is not SocketTextChannel channel) { throw new Exception("Channel from Queue was null, this should not happen!"); }
+                        var FirstItem = queue.Peek();
+                        if (FirstItem.Channel is not SocketTextChannel channel)
+                            throw new Exception("Channel from Queue was null, this should not happen!");
+
                         List<string> sendBatch = [];
-                        int currentSize = Formatter.Item1.Length + Formatter.Item2.Length; // Start with the size of the formatter
+                        HashSet<SocketUser> ToPing = [];
+
                         while (queue.Count > 0)
                         {
-                            //Account for the separator if this isn't the first message in the batch
-                            int Padding = sendBatch.Count > 0 ? LineSeparator.Length : 0;
-                            int nextMessageSize = queue.Peek().Message.Length + Padding;
-                            //Break the loop if the message would go over the Discord message char limit
-                            if (currentSize + nextMessageSize > DiscordMessageLimit) break; 
-                            sendBatch.Add(queue.Dequeue().Message);
-                            currentSize += nextMessageSize;
+                            var PeekedItem = queue.Peek();
+                            List<string> SimulatedMessageBatch = [.. sendBatch, .. new string[] { PeekedItem.Message }];
+                            HashSet<SocketUser> SimulatedToPing = [.. ToPing, .. PeekedItem.UsersToPing];
+                            string SimulatedFinalMessage = GetFinalMessage(SimulatedMessageBatch, SimulatedToPing);
+                            if (SimulatedFinalMessage.Length > DiscordMessageLimit) break;
+
+                            var QueuedItem = queue.Dequeue();
+                            sendBatch.Add(QueuedItem.Message);
+                            foreach(var user in PeekedItem.UsersToPing)
+                                ToPing.Add(user);
                         }
 
-                        var formattedMessage = GetFinalMessage(sendBatch);
-                        Console.WriteLine($"Sending Final message of size {formattedMessage.Length}");
+                        var formattedMessage = GetFinalMessage(sendBatch, ToPing);
                         _ = channel.SendMessageAsync(formattedMessage);
                         await Task.Delay(discordBot.appSettings.DiscordRateLimitDelay);
                     }
@@ -50,9 +54,11 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         private static readonly string LineSeparator = "\n\n";
         private static readonly int DiscordMessageLimit = 2000;
 
-        private static string GetFinalMessage(List<string> sendBatch)
+        private static string GetFinalMessage(List<string> sendBatch, HashSet<SocketUser> ToPing)
         {
-            return $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}";
+            return $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}{CreatePingString(ToPing)}";
         }
+        private static string CreatePing(SocketUser user) => $"<@{user.Id}>";
+        private static string CreatePingString(HashSet<SocketUser> ToPing) => string.Join("", ToPing.Select(CreatePing));
     }
 }

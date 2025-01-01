@@ -15,17 +15,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             var CommandCreation = new CommandCreation();
             CommandCreation.CreateCommands(this);
         }
-        public Dictionary<string, SlashCommand> Commands = new Dictionary<string, SlashCommand>();
+        public Dictionary<string, ICommand> Commands = new Dictionary<string, ICommand>();
 
-        public SlashCommand AddCommand(string Name)
+        public void AddCommand(ICommand command)
         {
-            Commands[Name] = new SlashCommand() { Name = Name };
-            return Commands[Name];
+            Commands[command.Name] = command;
         }
-        public SlashCommand? GetCommand(string Name)
+        public ICommand? GetCommand(string Name)
         {
-            if (!Commands.TryGetValue(Name, out SlashCommand? slashCommand)) { return null; }
-            return slashCommand;
+            if (!Commands.TryGetValue(Name, out ICommand? value)) { return null; }
+            return value;
         }
         public async Task Initialize()
         {
@@ -33,7 +32,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             foreach (var item in Commands)
             {
                 Console.WriteLine($"Registering Command {item.Key}");
-                var CommandProperties = item.Value.GetProperties() ?? throw new Exception($"Command {item.Key} has no properties");
+                var CommandProperties = item.Value.Properties ?? throw new Exception($"Command {item.Key} has no properties");
                 await Client.CreateGlobalApplicationCommandAsync(CommandProperties);
             }
         }
@@ -73,31 +72,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
     {
         public void CreateCommands(CommandRegistry commandRegistry)
         {
-            commandRegistry.AddCommand("connect")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Connect this channel to an Archipelago server")
-                    .AddOption("ip", ApplicationCommandOptionType.String, "Server IP", true)
-                    .AddOption("port", ApplicationCommandOptionType.Integer, "Server Port", true)
-                    .AddOption("game", ApplicationCommandOptionType.String, "Game name", true)
-                    .AddOption("name", ApplicationCommandOptionType.String, "Player name", true)
-                    .AddOption("password", ApplicationCommandOptionType.String, "Optional password", false)
-                ).SetExecutionFunc(ConnectionCommands.HandleConnectCommand);
+            commandRegistry.AddCommand(new ConnectionCommands.ConnectCommand());
+            commandRegistry.AddCommand(new ConnectionCommands.ReConnectCommand());
+            commandRegistry.AddCommand(new ConnectionCommands.DisconnectCommand());
+            commandRegistry.AddCommand(new UserAssignmentCommands.AssignUserCommand());
+            commandRegistry.AddCommand(new HintCommands.ShowHintsCommand());
+            commandRegistry.AddCommand(new AppSettingManagementCommands.PrintAppSettingsCommand());
+            commandRegistry.AddCommand(new AppSettingManagementCommands.ToggleAppSettings());
+            commandRegistry.AddCommand(new AppSettingManagementCommands.EditTagIgnoreList());
+            /*
 
-            commandRegistry.AddCommand("reconnect")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Connects to the server using the last known working connection info.")
-                ).SetExecutionFunc(ConnectionCommands.HandleReConnectCommand);
-
-            commandRegistry.AddCommand("disconnect")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Disconnect this channel from the Archipelago server")
-                ).SetExecutionFunc(ConnectionCommands.HandleDisconnectCommand);
-
-            commandRegistry.AddCommand("show_hints")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Shows all hint for the current player")
-                    .AddOption("player", ApplicationCommandOptionType.String, "Player to get Hints for, defaults to connected player", false)
-                ).SetExecutionFunc(HintCommands.HandleShowHintsCommand);
 
             commandRegistry.AddCommand("show_sessions")
                 .SetProperties(new SlashCommandBuilder()
@@ -108,41 +92,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .SetProperties(new SlashCommandBuilder()
                     .WithDescription("Show the active Archipelago session for this channel")
                 ).SetExecutionFunc(ShowSessionCommands.HandleShowChannelSessionCommand);
-
-            commandRegistry.AddCommand("assign_user_to_player")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Assign discord user to archipelago player")
-                    .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
-                    .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true)
-                ).SetExecutionFunc(HandleUserAssignmentCommands.HandleAssignUserToPlayer);
-
-            commandRegistry.AddCommand("show_bot_settings")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Prints the current bot settings")
-                ).SetExecutionFunc(OptionManagementCommands.HandleShowSettingsCommand);
-
-            commandRegistry.AddCommand("edit_bot_settings")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Toggle the selected bot setting")
-                    .AddOption(new SlashCommandOptionBuilder()
-                        .WithName("setting")
-                        .WithDescription("Select a setting to toggle")
-                        .WithRequired(true)
-                        .AddChoice("ignore_leave_join", (int)SettingEnum.IgnoreLeaveJoin)
-                        .AddChoice("ignore_item_send", (int)SettingEnum.IgnoreItemSend)
-                        .AddChoice("ignore_chats", (int)SettingEnum.IgnoreChats)
-                        .AddChoice("ignore_connected_player_chats", (int)SettingEnum.IgnoreConnectedPlayerChats)
-                        .WithType(ApplicationCommandOptionType.Integer)
-                    )
-                    .AddOption("value", ApplicationCommandOptionType.Boolean, "Value", false)
-                ).SetExecutionFunc(OptionManagementCommands.HandleChangeSettingsCommand);
-
-            commandRegistry.AddCommand("edit_ignored_tags")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Adds or removes ignored tags")
-                    .AddOption("add", ApplicationCommandOptionType.Boolean, "true: add, false: remove", true)
-                    .AddOption("tags", ApplicationCommandOptionType.String, "Comma-separated tags", true)
-                ).SetExecutionFunc(OptionManagementCommands.HandleEditIngoredTagsCommand);
+            */
         }
     }
 }

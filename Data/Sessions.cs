@@ -12,5 +12,14 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public Dictionary<SocketUser, HashSet<string>> SlotAssociations = [];
             public string? OriginalChannelName = null;
         }
+
+        public class ArchipelagoConnectionInfo
+        {
+            public required string? IP { get; set; }
+            public required int Port { get; set; }
+            public required string? Game { get; set; }
+            public required string? Name { get; set; }
+            public required string? Password { get; set; }
+        }
     }
 }

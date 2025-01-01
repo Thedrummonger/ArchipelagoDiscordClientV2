@@ -83,6 +83,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .AddOption("password", ApplicationCommandOptionType.String, "Optional password", false)
                 ).SetExecutionFunc(ConnectionCommands.HandleConnectCommand);
 
+            commandRegistry.AddCommand("reconnect")
+                .SetProperties(new SlashCommandBuilder()
+                    .WithDescription("Connects to the server using the last known working connection info.")
+                ).SetExecutionFunc(ConnectionCommands.HandleReConnectCommand);
+
             commandRegistry.AddCommand("disconnect")
                 .SetProperties(new SlashCommandBuilder()
                     .WithDescription("Disconnect this channel from the Archipelago server")

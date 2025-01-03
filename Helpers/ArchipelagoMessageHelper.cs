@@ -1,31 +1,31 @@
 ﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
 using System.Text.RegularExpressions;
-using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
+using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
 {
     public static class ArchipelagoMessageHelper
     {
-        public static bool ShouldIgnoreMessage(this LogMessage logMessage, DiscordBot bot)
+        public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session)
         {
             switch (logMessage)
             {
                 case ServerChatLogMessage:
-                    return bot.appSettings.IgnoreChats;
+                    return session.settings.IgnoreChats;
                 case ChatLogMessage message:
                     //If it's a discord message from the active player, assume it came from the same chat and doesn't need to be posted
                     if (message.IsActivePlayer && message.ToString().Contains(": [Discord:")) { return true; }
-                    return bot.appSettings.IgnoreChats || (message.IsActivePlayer && bot.appSettings.IgnoreConnectedPlayerChats);
+                    return session.settings.IgnoreChats || (message.IsActivePlayer && session.settings.IgnoreConnectedPlayerChats);
 
                 case JoinLogMessage message:
-                    return bot.appSettings.IgnoreLeaveJoin || bot.appSettings.IgnoreTags.Intersect(message.Tags.Select(x => x.ToLower())).Any();
+                    return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.Tags.Select(x => x.ToLower())).Any();
                 case LeaveLogMessage message:
-                    return bot.appSettings.IgnoreLeaveJoin || bot.appSettings.IgnoreTags.Intersect(message.GetTags().Select(x => x.ToLower())).Any();
+                    return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.GetTags().Select(x => x.ToLower())).Any();
 
                 case HintItemSendLogMessage:
                 case ItemCheatLogMessage:
                 case ItemSendLogMessage:
-                    return bot.appSettings.IgnoreItemSend;
+                    return session.settings.IgnoreItemSend;
 
                 case AdminCommandResultLogMessage:
                 case GoalLogMessage:

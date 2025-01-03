@@ -31,7 +31,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             };
             void MessageLog_OnMessageReceived(LogMessage message)
             {
-                if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, discordBot)) { return; }
+                if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, BotSession)) { return; }
                 StringBuilder FormattedMessage = new StringBuilder();
                 StringBuilder RawMessage = new StringBuilder();
 

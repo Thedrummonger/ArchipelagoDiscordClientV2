@@ -50,7 +50,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         {
             if (!_Properties.Name.IsNullOrWhiteSpace()) 
             {
-                throw new Exception($"Name is already set in the AddCommand funtition, do not add a name in the builder");
+                throw new Exception($"Name is already set in the AddCommand function, do not add a name in the builder");
             }
             _Properties.WithName(Name);
             Properties = _Properties.Build();
@@ -76,23 +76,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             commandRegistry.AddCommand(new ConnectionCommands.ReConnectCommand());
             commandRegistry.AddCommand(new ConnectionCommands.DisconnectCommand());
             commandRegistry.AddCommand(new UserAssignmentCommands.AssignUserCommand());
+            commandRegistry.AddCommand(new UserAssignmentCommands.UnAssignUserCommand());
             commandRegistry.AddCommand(new HintCommands.ShowHintsCommand());
             commandRegistry.AddCommand(new AppSettingManagementCommands.PrintAppSettingsCommand());
             commandRegistry.AddCommand(new AppSettingManagementCommands.ToggleAppSettings());
             commandRegistry.AddCommand(new AppSettingManagementCommands.EditTagIgnoreList());
-            /*
-
-
-            commandRegistry.AddCommand("show_sessions")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Show all active Archipelago sessions in this server")
-                ).SetExecutionFunc(ShowSessionCommands.HandleShowSessionsCommand);
-
-            commandRegistry.AddCommand("show_channel_session")
-                .SetProperties(new SlashCommandBuilder()
-                    .WithDescription("Show the active Archipelago session for this channel")
-                ).SetExecutionFunc(ShowSessionCommands.HandleShowChannelSessionCommand);
-            */
         }
     }
 }

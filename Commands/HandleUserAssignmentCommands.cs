@@ -1,6 +1,8 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
 using Discord.WebSocket;
+using System.Collections.Generic;
+using System.Linq;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
@@ -8,6 +10,69 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 {
     public class UserAssignmentCommands
     {
+        public class UnAssignUserCommand : ICommand
+        {
+            public string Name => "detach_user_from_player";
+
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
+                .WithName(Name)
+                    .WithDescription("Detaches discord user from archipelago player")
+                    .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
+                    .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
+
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            {
+                var Data = command.GetCommandData();
+                if (Data.socketTextChannel is null)
+                {
+                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
+                    return;
+                }
+
+                // Check if the guild and channel have an active session
+                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
+                {
+                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    return;
+                }
+
+                var user = Data.GetArg("user")?.GetValue<SocketUser>();
+                var players = Data.GetArg("players")?.GetValue<string?>();
+
+                if (!ActiveSession.SlotAssociations.ContainsKey(user!))
+                {
+                    await command.RespondAsync($"There are no slot associations for {user!.Username}.", ephemeral: true);
+                    return;
+                }
+
+                var PlayerList = players!.TrimSplit(",").ToHashSet(); //Players passed by the command
+
+                HashSet<string> valid = [];
+                HashSet<string> invalid = [];
+                foreach (var player in PlayerList) 
+                {
+                    bool WasRemoved = ActiveSession.SlotAssociations[user!].Remove(player);
+                    HashSet<string> trackingList = WasRemoved ? valid : invalid;
+                    trackingList.Add(player);
+                }
+
+                List<string> MessageParts = [];
+                if (valid.Count > 0)
+                {
+                    MessageParts.Add($"The following players were removed from {user!.Username}");
+                    MessageParts.AddRange(valid.Select(x => $"-{x}"));
+                }
+                if (invalid.Count > 0)
+                {
+                    MessageParts.Add($"The following players were not associated with {user!.Username}");
+                    MessageParts.AddRange(invalid.Select(x => $"-{x}"));
+                }
+                discordBot.ConnectionCache[Data.channelId].SlotAssociations = ActiveSession.SlotAssociations.ToDictionary(x => x.Key.Id, x => x.Value);
+                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                await command.RespondAsync(String.Join("\n", MessageParts));
+            }
+        }
+
         public class AssignUserCommand : ICommand
         {
             public string Name => "assign_user_to_player";
@@ -28,54 +93,52 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
 
                 // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var session))
+                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
                 {
                     await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
                     return;
                 }
 
-                var APSession = discordBot.ActiveSessions[Data.channelId];
-
                 var user = Data.GetArg("user")?.GetValue<SocketUser>();
                 var players = Data.GetArg("players")?.GetValue<string?>();
 
-                var APPlayers = APSession.archipelagoSession.Players.AllPlayers.Select(p => p.Name);
+                var APPlayers = ActiveSession.archipelagoSession.Players.AllPlayers.Select(p => p.Name);
 
-                APSession.SlotAssociations!.SetIfEmpty(user, []);
+                ActiveSession.SlotAssociations!.SetIfEmpty(user, []);
 
-                var CurrentAssociations = APSession.SlotAssociations[user!];
+                var CurrentAssociations = ActiveSession.SlotAssociations[user!];
 
                 var PlayerList = players!.TrimSplit(",").ToHashSet(); //Players passed by the command
-                var AlreadyAssigned = PlayerList.Where(CurrentAssociations.Contains).ToHashSet(); //Players already assigned to this user
-                var InvalidPlayers = PlayerList.Where(x => !APPlayers.Contains(x)).ToHashSet(); //Players not found in AP
-                PlayerList = PlayerList.Where(x => !AlreadyAssigned.Contains(x) && !InvalidPlayers.Contains(x)).ToHashSet(); //Valid Players
 
-                foreach (var Player in PlayerList) { CurrentAssociations.Add(Player); }
+                HashSet<string> AddedPlayers = [];
+                HashSet<string> InvalidPlayers = [];
+                HashSet<string> AlreadyAssigned = [];
+                foreach (var Player in PlayerList) 
+                { 
+                    if (!APPlayers.Contains(Player)) 
+                    { 
+                        InvalidPlayers.Add(Player); 
+                        continue; 
+                    }
+                    var WasAdded = CurrentAssociations.Add(Player);
+                    var UpdateList = WasAdded ? AddedPlayers : AlreadyAssigned;
+                }
 
                 List<string> MessageParts = [];
                 if (PlayerList.Count > 0)
                 {
                     MessageParts.Add($"The following players were associated to {user!.Username}");
-                    foreach (var player in PlayerList)
-                    {
-                        MessageParts.Add($"-{player}");
-                    }
+                    MessageParts.AddRange(PlayerList.Select(x => $"-{x}"));
                 }
                 if (AlreadyAssigned.Count > 0)
                 {
                     MessageParts.Add($"The following players were already assigned to {user!.Username}");
-                    foreach (var player in AlreadyAssigned)
-                    {
-                        MessageParts.Add($"-{player}");
-                    }
+                    MessageParts.AddRange(AlreadyAssigned.Select(x => $"-{x}"));
                 }
                 if (InvalidPlayers.Count > 0)
                 {
                     MessageParts.Add($"The following players were not valid players in archipelago");
-                    foreach (var player in InvalidPlayers)
-                    {
-                        MessageParts.Add($"-{player}");
-                    }
+                    MessageParts.AddRange(InvalidPlayers.Select(x => $"-{x}"));
                 }
 
                 await command.RespondAsync(String.Join("\n", MessageParts));

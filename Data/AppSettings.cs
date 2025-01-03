@@ -4,11 +4,16 @@
     {
         public string BotToken = "";
         public int DiscordRateLimitDelay = 100;
-        public HashSet<string> IgnoreTags = ["tracker", "textonly"];
-        public bool IgnoreLeaveJoin = false;
-        public bool IgnoreItemSend = false;
-        public bool IgnoreChats = false;
-        public bool IgnoreConnectedPlayerChats = true;
+        public SessionSetting AppDefaultSettings = new SessionSetting() { IgnoreTags = ["tracker", "textonly"] };
+    }
+
+    public class SessionSetting
+    {
+        public HashSet<string> IgnoreTags { get; set; } = [];
+        public bool IgnoreLeaveJoin { get; set; } = false;
+        public bool IgnoreItemSend { get; set; } = false;
+        public bool IgnoreChats { get; set; } = false;
+        public bool IgnoreConnectedPlayerChats { get; set; } = true;
     }
 
     public enum SettingEnum

@@ -56,7 +56,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                await ConnectToAPServer(command, discordBot, Data, ConnectionData);
+                await ConnectToAPServer(command, discordBot, ConnectionData, discordBot.appSettings.AppDefaultSettings);
             }
         }
 
@@ -84,13 +84,15 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                if (!discordBot.ConnectionCache.TryGetValue(Data.socketTextChannel.Id, out Sessions.ArchipelagoConnectionInfo? connectionInfo) || connectionInfo is null)
+                if (!discordBot.ConnectionCache.TryGetValue(Data.socketTextChannel.Id, out Sessions.SessionCache? connectionCache) || connectionCache is null)
                 {
                     await command.RespondAsync("No previous connection cached for this channel", ephemeral: true);
                     return;
                 }
 
-                await ConnectToAPServer(command, discordBot, Data, connectionInfo);
+                await ConnectToAPServer(command, discordBot, connectionCache.archipelagoConnectionInfo!, connectionCache.Settings!);
+
+                //TODO, reassign userAssociations here
             }
         }
 
@@ -130,8 +132,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public abstract SlashCommandProperties Properties { get; }
             public abstract Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
 
-            internal async Task ConnectToAPServer(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel Data, Sessions.ArchipelagoConnectionInfo ConnectionData)
+            internal async Task ConnectToAPServer(
+                SocketSlashCommand command, 
+                DiscordBot discordBot, 
+                Sessions.ArchipelagoConnectionInfo ConnectionData, 
+                SessionSetting DefaultSettings 
+                )
             {
+                var Data = command.GetCommandData();
                 Console.WriteLine($"Connecting {Data.channelName} to {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name} playing {ConnectionData.Game}");
                 await command.RespondAsync($"Connecting {Data.channelName} to {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name} playing {ConnectionData.Game}...");
 
@@ -144,9 +152,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     LoginResult result = session.TryConnectAndLogin(
                         ConnectionData.Game,
                         ConnectionData.Name,
-                        ItemsHandlingFlags.AllItems, //Probably doesn't need ItemsHandlingFlags.AllItems
+                        ItemsHandlingFlags.AllItems,
                         new Version(0, 5, 1),
-                        ["Tracker"], null,
+                        ["TextOnly"], null,
                         ConnectionData.Password,
                         true);
 
@@ -161,12 +169,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     Console.WriteLine($"Connected to Archipelago server at {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name}.");
 
                     // Store the session
-                    discordBot.ActiveSessions[Data.channelId] = new Sessions.ActiveBotSession
+                    discordBot.ActiveSessions[Data.channelId] = new Sessions.ActiveBotSession(DefaultSettings)
                     {
                         DiscordChannel = Data.socketTextChannel!,
                         archipelagoSession = session
                     };
-                    discordBot.ConnectionCache[Data.channelId] = ConnectionData;
+                    discordBot.ConnectionCache[Data.channelId] = new Sessions.SessionCache
+                    {
+                        archipelagoConnectionInfo = ConnectionData,
+                        Settings = DefaultSettings
+                    };
 
                     session.CreateArchipelagoHandlers(discordBot, discordBot.ActiveSessions[Data.channelId]);
 

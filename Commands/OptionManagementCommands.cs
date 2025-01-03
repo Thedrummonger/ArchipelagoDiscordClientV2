@@ -18,7 +18,20 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                await PrintSettings(command, discordBot);
+                var Data = command.GetCommandData();
+                if (Data.socketTextChannel is null)
+                {
+                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
+                    return;
+                }
+
+                // Check if the guild and channel have an active session
+                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
+                {
+                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    return;
+                }
+                await PrintSettings(command, ActiveSession);
             }
         }
 
@@ -44,29 +57,42 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 var Data = command.GetCommandData();
+                if (Data.socketTextChannel is null)
+                {
+                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
+                    return;
+                }
+
+                // Check if the guild and channel have an active session
+                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
+                {
+                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    return;
+                }
                 var setting = (int)(Data.GetArg("setting")?.GetValue<long>() ?? 0);
                 var value = Data.GetArg("value")?.GetValue<bool?>();
 
                 switch (setting)
                 {
                     case (int)SettingEnum.IgnoreLeaveJoin:
-                        discordBot.appSettings.IgnoreLeaveJoin = value ?? !discordBot.appSettings.IgnoreLeaveJoin;
+                        ActiveSession.settings.IgnoreLeaveJoin = value ?? !ActiveSession.settings.IgnoreLeaveJoin;
                         break;
                     case (int)SettingEnum.IgnoreItemSend:
-                        discordBot.appSettings.IgnoreItemSend = value ?? !discordBot.appSettings.IgnoreItemSend;
+                        ActiveSession.settings.IgnoreItemSend = value ?? !ActiveSession.settings.IgnoreItemSend;
                         break;
                     case (int)SettingEnum.IgnoreChats:
-                        discordBot.appSettings.IgnoreChats = value ?? !discordBot.appSettings.IgnoreChats;
+                        ActiveSession.settings.IgnoreChats = value ?? !ActiveSession.settings.IgnoreChats;
                         break;
                     case (int)SettingEnum.IgnoreConnectedPlayerChats:
-                        discordBot.appSettings.IgnoreConnectedPlayerChats = value ?? !discordBot.appSettings.IgnoreConnectedPlayerChats;
+                        ActiveSession.settings.IgnoreConnectedPlayerChats = value ?? !ActiveSession.settings.IgnoreConnectedPlayerChats;
                         break;
                     default:
                         await command.RespondAsync($"Invalid option", ephemeral: true);
                         return;
                 }
-                File.WriteAllText(Constants.Paths.ConfigFile, discordBot.appSettings.ToFormattedJson());
-                await PrintSettings(command, discordBot);
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
+                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                await PrintSettings(command, ActiveSession);
             }
         }
 
@@ -83,16 +109,29 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 var Data = command.GetCommandData();
+                if (Data.socketTextChannel is null)
+                {
+                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
+                    return;
+                }
+
+                // Check if the guild and channel have an active session
+                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
+                {
+                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    return;
+                }
                 var add = Data.GetArg("add")?.GetValue<bool>() ?? true;
                 var value = Data.GetArg("tags")?.GetValue<string?>() ?? "";
                 var values = value.TrimSplit(",").Select(x => x.Trim().ToLower()).ToHashSet();
                 foreach (var v in values)
                 {
-                    if (add) { discordBot.appSettings.IgnoreTags.Add(v); }
-                    else { discordBot.appSettings.IgnoreTags.Remove(v); }
+                    if (add) { ActiveSession.settings.IgnoreTags.Add(v); }
+                    else { ActiveSession.settings.IgnoreTags.Remove(v); }
                 }
-                File.WriteAllText(Constants.Paths.ConfigFile, discordBot.appSettings.ToFormattedJson());
-                await PrintSettings(command, discordBot);
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
+                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                await PrintSettings(command, ActiveSession);
             }
         }
 
@@ -101,11 +140,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public abstract string Name { get; }
             public abstract SlashCommandProperties Properties { get; }
             public abstract Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
-            public async Task PrintSettings(SocketSlashCommand command, DiscordBot discordBot)
+            public async Task PrintSettings(SocketSlashCommand command, Sessions.ActiveBotSession Session)
             {
-                var SettingsCopy = discordBot.appSettings.DeepClone();
-                SettingsCopy.BotToken = null; //Remove the bot token from the print
-                await command.RespondAsync($"```json\n{SettingsCopy.ToFormattedJson()}\n```");
+                await command.RespondAsync($"```json\n{Session.settings.ToFormattedJson()}\n```");
             }
         }
     }

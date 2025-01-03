@@ -56,7 +56,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                await ConnectToAPServer(command, discordBot, ConnectionData, discordBot.appSettings.AppDefaultSettings);
+                var SessionInfo = new Sessions.SessionContructor()
+                {
+                    archipelagoConnectionInfo = ConnectionData,
+                    Settings = discordBot.appSettings.AppDefaultSettings
+                };
+
+                await ConnectToAPServer(command, discordBot, SessionInfo);
             }
         }
 
@@ -84,15 +90,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                if (!discordBot.ConnectionCache.TryGetValue(Data.socketTextChannel.Id, out Sessions.SessionCache? connectionCache) || connectionCache is null)
+                if (!discordBot.ConnectionCache.TryGetValue(Data.socketTextChannel.Id, out Sessions.SessionContructor? connectionCache) || connectionCache is null)
                 {
                     await command.RespondAsync("No previous connection cached for this channel", ephemeral: true);
                     return;
                 }
 
-                await ConnectToAPServer(command, discordBot, connectionCache.archipelagoConnectionInfo!, connectionCache.Settings!);
-
-                //TODO, reassign userAssociations here
+                await ConnectToAPServer(command, discordBot, connectionCache);
             }
         }
 
@@ -132,65 +136,79 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public abstract SlashCommandProperties Properties { get; }
             public abstract Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
 
-            internal async Task ConnectToAPServer(
-                SocketSlashCommand command, 
-                DiscordBot discordBot, 
-                Sessions.ArchipelagoConnectionInfo ConnectionData, 
-                SessionSetting DefaultSettings 
-                )
+            internal async Task ConnectToAPServer(SocketSlashCommand command, DiscordBot discordBot, Sessions.SessionContructor sessionConstructor)
             {
                 var Data = command.GetCommandData();
-                Console.WriteLine($"Connecting {Data.channelName} to {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name} playing {ConnectionData.Game}");
-                await command.RespondAsync($"Connecting {Data.channelName} to {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name} playing {ConnectionData.Game}...");
+                Console.WriteLine($"Connecting " +
+                    $"{Data.channelName} to " +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.Name} playing " +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.Game}");
+
+                await command.RespondAsync($"Connecting {Data.channelName} to " +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.Name} playing " +
+                    $"{sessionConstructor.archipelagoConnectionInfo!.Game}...");
 
                 // Create a new session
                 try
                 {
-                    var session = ArchipelagoSessionFactory.CreateSession(ConnectionData.IP, ConnectionData.Port);
+                    var session = ArchipelagoSessionFactory.CreateSession(sessionConstructor.archipelagoConnectionInfo!.IP, sessionConstructor.archipelagoConnectionInfo!.Port);
                     Console.WriteLine($"Trying to connect");
 
                     LoginResult result = session.TryConnectAndLogin(
-                        ConnectionData.Game,
-                        ConnectionData.Name,
+                        sessionConstructor.archipelagoConnectionInfo!.Game,
+                        sessionConstructor.archipelagoConnectionInfo!.Name,
                         ItemsHandlingFlags.AllItems,
                         new Version(0, 5, 1),
                         ["TextOnly"], null,
-                        ConnectionData.Password,
+                        sessionConstructor.archipelagoConnectionInfo!.Password,
                         true);
 
                     if (result is LoginFailure failure)
                     {
                         var errors = string.Join("\n", failure.Errors);
                         await command.ModifyOriginalResponseAsync(msg => msg.Content =
-                            $"Failed to connect to Archipelago server at {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name}.\n{errors}");
+                            $"Failed to connect to Archipelago server at " +
+                            $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
+                            $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
+                            $"{sessionConstructor.archipelagoConnectionInfo!.Name}.\n" +
+                            $"{errors}");
                         return;
                     }
 
-                    Console.WriteLine($"Connected to Archipelago server at {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name}.");
+                    Console.WriteLine($"Connected to Archipelago server at " +
+                        $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
+                        $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
+                        $"{sessionConstructor.archipelagoConnectionInfo!.Name}.");
 
                     // Store the session
-                    discordBot.ActiveSessions[Data.channelId] = new Sessions.ActiveBotSession(DefaultSettings)
+                    discordBot.ActiveSessions[Data.channelId] = new Sessions.ActiveBotSession(sessionConstructor.Settings!)
                     {
                         DiscordChannel = Data.socketTextChannel!,
-                        archipelagoSession = session
+                        archipelagoSession = session,
                     };
-                    discordBot.ConnectionCache[Data.channelId] = new Sessions.SessionCache
-                    {
-                        archipelagoConnectionInfo = ConnectionData,
-                        Settings = DefaultSettings
-                    };
+                    discordBot.ConnectionCache[Data.channelId] = sessionConstructor;
 
                     session.CreateArchipelagoHandlers(discordBot, discordBot.ActiveSessions[Data.channelId]);
 
                     File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
 
                     await command.ModifyOriginalResponseAsync(msg => msg.Content =
-                        $"Successfully connected channel {Data.channelName} to Archipelago server at {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name}.");
+                        $"Successfully connected channel {Data.channelName} to Archipelago server at " +
+                        $"{sessionConstructor.archipelagoConnectionInfo.IP}:" +
+                        $"{sessionConstructor.archipelagoConnectionInfo.Port} as " +
+                        $"{sessionConstructor.archipelagoConnectionInfo.Name}.");
                 }
                 catch (Exception ex)
                 {
                     await command.ModifyOriginalResponseAsync(msg => msg.Content =
-                        $"Failed to connect to Archipelago server at {ConnectionData.IP}:{ConnectionData.Port} as {ConnectionData.Name}.\n{ex.Message}");
+                        $"Failed to connect to Archipelago server at " +
+                        $"{sessionConstructor.archipelagoConnectionInfo.IP}:" +
+                        $"{sessionConstructor.archipelagoConnectionInfo.Port} as " +
+                        $"{sessionConstructor.archipelagoConnectionInfo.Name}.\n{ex.Message}");
                 }
             }
         }

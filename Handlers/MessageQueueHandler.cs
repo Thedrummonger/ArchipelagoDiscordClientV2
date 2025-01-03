@@ -23,13 +23,13 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                             throw new Exception("Channel from Queue was null, this should not happen!");
 
                         List<string> sendBatch = [];
-                        HashSet<SocketUser> ToPing = [];
+                        HashSet<ulong> ToPing = [];
 
                         while (queue.Count > 0)
                         {
                             var PeekedItem = queue.Peek();
                             List<string> SimulatedMessageBatch = [.. sendBatch, .. new string[] { PeekedItem.Message }];
-                            HashSet<SocketUser> SimulatedToPing = [.. ToPing, .. PeekedItem.UsersToPing];
+                            HashSet<ulong> SimulatedToPing = [.. ToPing, .. PeekedItem.UsersToPing];
                             string SimulatedFinalMessage = GetFinalMessage(SimulatedMessageBatch, SimulatedToPing);
                             if (SimulatedFinalMessage.Length > DiscordMessageLimit) break;
 
@@ -54,11 +54,11 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         private static readonly string LineSeparator = "\n\n";
         private static readonly int DiscordMessageLimit = 2000;
 
-        private static string GetFinalMessage(List<string> sendBatch, HashSet<SocketUser> ToPing)
+        private static string GetFinalMessage(List<string> sendBatch, HashSet<ulong> ToPing)
         {
             return $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}{CreatePingString(ToPing)}";
         }
-        private static string CreatePing(SocketUser user) => $"<@{user.Id}>";
-        private static string CreatePingString(HashSet<SocketUser> ToPing) => string.Join("", ToPing.Select(CreatePing));
+        private static string CreatePing(ulong user) => $"<@{user}>";
+        private static string CreatePingString(HashSet<ulong> ToPing) => string.Join("", ToPing.Select(CreatePing));
     }
 }

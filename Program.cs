@@ -29,7 +29,7 @@ namespace ArchipelagoDiscordClient
             if (Config.BotToken.IsNullOrWhiteSpace()) { throw new Exception($"Bot key not valid"); }
             DiscordBot BotClient = new DiscordBot(Config);
 
-            BotClient.ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionCache>(), true);
+            BotClient.ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionContructor>(), true);
 
             BotClient.GetClient().Ready += BotClient.commandRegistry.Initialize;
             BotClient.GetClient().SlashCommandExecuted += BotClient.CommandHandler.HandleSlashCommand;
@@ -60,7 +60,7 @@ namespace ArchipelagoDiscordClient
                 Debug.WriteLine($"Checking Sessions {SessionKeys.ToFormattedJson()}");
                 foreach(var i in SessionKeys)
                 {
-                    if (!bot.ActiveSessions.TryGetValue(i, out ActiveBotSession ActiveSession)) { continue; }
+                    if (!bot.ActiveSessions.TryGetValue(i, out ActiveBotSession? ActiveSession)) { continue; }
                     try { ActiveSession.archipelagoSession.DataStorage.GetClientStatus(); }
                     catch
                     {

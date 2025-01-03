@@ -42,14 +42,16 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 }
                 if (string.IsNullOrWhiteSpace(FormattedMessage.ToString())) { return; }
 
-                HashSet<SocketUser> ToPing = [];
+                HashSet<ulong> ToPing = [];
 
                 if (message is ItemSendLogMessage itemSendMessage && 
                     itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)
                     && itemSendMessage.Receiver.Slot != itemSendMessage.Sender.Slot)
                 {
-                    foreach (var i in BotSession.SlotAssociations.Where(x => x.Value.Contains(itemSendMessage.Receiver.Name)))
+                    foreach (var i in BotSession.settings.SlotAssociations)
                     {
+                        if (!i.Value.Contains(itemSendMessage.Receiver.Name)) { continue; }
+                        if (i.Value.Contains(itemSendMessage.Sender.Name)) { continue; } //Same player, different slot
                         ToPing.Add(i.Key);
                         ToPing.Add(i.Key);
                     }

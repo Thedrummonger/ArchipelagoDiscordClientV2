@@ -10,7 +10,6 @@ namespace ArchipelagoDiscordClientLegacy.Data
         {
             public required SocketTextChannel DiscordChannel;
             public required ArchipelagoSession archipelagoSession;
-            public Dictionary<SocketUser, HashSet<string>> SlotAssociations = [];
             public string? OriginalChannelName = null;
             public SessionSetting settings = DefaultSettings.DeepClone();
         }
@@ -24,11 +23,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public required string? Password { get; set; }
         }
 
-        public class SessionCache
+        public class SessionContructor
         {
             public ArchipelagoConnectionInfo? archipelagoConnectionInfo {  get; set; }
             public SessionSetting? Settings { get; set; }
-            public Dictionary<ulong, HashSet<string>> SlotAssociations { get; set; } = [];
         }
     }
 }

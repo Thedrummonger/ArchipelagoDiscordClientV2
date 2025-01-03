@@ -4,7 +4,7 @@
     {
         public string BotToken = "";
         public int DiscordRateLimitDelay = 100;
-        public SessionSetting AppDefaultSettings = new SessionSetting() { IgnoreTags = ["tracker", "textonly"] };
+        public SessionSetting AppDefaultSettings = new() { IgnoreTags = ["tracker", "textonly"] };
     }
 
     public class SessionSetting
@@ -14,6 +14,7 @@
         public bool IgnoreItemSend { get; set; } = false;
         public bool IgnoreChats { get; set; } = false;
         public bool IgnoreConnectedPlayerChats { get; set; } = true;
+        public Dictionary<ulong, HashSet<string>> SlotAssociations { get; set; } = [];
     }
 
     public enum SettingEnum

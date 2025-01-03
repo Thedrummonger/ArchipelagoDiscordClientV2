@@ -12,7 +12,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
         {
             public bool BotIsLive = false;
             public Dictionary<ulong, ActiveBotSession> ActiveSessions = [];
-            public Dictionary<ulong, SessionCache> ConnectionCache = [];
+            public Dictionary<ulong, SessionContructor> ConnectionCache = [];
             public AppSettings appSettings;
             public CommandRegistry commandRegistry;
             public SlashCommandHandlers CommandHandler;

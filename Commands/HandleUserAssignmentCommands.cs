@@ -39,7 +39,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var user = Data.GetArg("user")?.GetValue<SocketUser>();
                 var players = Data.GetArg("players")?.GetValue<string?>();
 
-                if (!ActiveSession.SlotAssociations.ContainsKey(user!))
+                if (!ActiveSession.settings.SlotAssociations.ContainsKey(user!.Id!))
                 {
                     await command.RespondAsync($"There are no slot associations for {user!.Username}.", ephemeral: true);
                     return;
@@ -51,7 +51,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 HashSet<string> invalid = [];
                 foreach (var player in PlayerList) 
                 {
-                    bool WasRemoved = ActiveSession.SlotAssociations[user!].Remove(player);
+                    bool WasRemoved = ActiveSession.settings.SlotAssociations[user!.Id].Remove(player);
                     HashSet<string> trackingList = WasRemoved ? valid : invalid;
                     trackingList.Add(player);
                 }
@@ -67,7 +67,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     MessageParts.Add($"The following players were not associated with {user!.Username}");
                     MessageParts.AddRange(invalid.Select(x => $"-{x}"));
                 }
-                discordBot.ConnectionCache[Data.channelId].SlotAssociations = ActiveSession.SlotAssociations.ToDictionary(x => x.Key.Id, x => x.Value);
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
                 File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
                 await command.RespondAsync(String.Join("\n", MessageParts));
             }
@@ -104,9 +104,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 var APPlayers = ActiveSession.archipelagoSession.Players.AllPlayers.Select(p => p.Name);
 
-                ActiveSession.SlotAssociations!.SetIfEmpty(user, []);
+                ActiveSession.settings.SlotAssociations!.SetIfEmpty(user!.Id, []);
 
-                var CurrentAssociations = ActiveSession.SlotAssociations[user!];
+                var CurrentAssociations = ActiveSession.settings.SlotAssociations[user!.Id];
 
                 var PlayerList = players!.TrimSplit(",").ToHashSet(); //Players passed by the command
 
@@ -140,6 +140,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     MessageParts.Add($"The following players were not valid players in archipelago");
                     MessageParts.AddRange(InvalidPlayers.Select(x => $"-{x}"));
                 }
+
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
+                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
 
                 await command.RespondAsync(String.Join("\n", MessageParts));
             }

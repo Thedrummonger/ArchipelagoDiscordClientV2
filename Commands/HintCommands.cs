@@ -3,6 +3,8 @@ using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
+using TDMUtils;
+using static ArchipelagoDiscordClientLegacy.Data.Constants;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 
@@ -59,29 +61,32 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     var ReceivingPlayer = session.archipelagoSession.Players.GetPlayerInfo(hint.ReceivingPlayer);
                     var Item = session.archipelagoSession.Items.GetItemName(hint.ItemId, ReceivingPlayer.Game);
                     var Location = session.archipelagoSession.Locations.GetLocationNameFromId(hint.LocationId, FindingPlayer.Game);
+                    var Entrance = hint.Entrance;
 
                     var FindingPlayerName = FindingPlayer.Name;
                     var ReceivingPlayerName = ReceivingPlayer.Name;
 
                     var FoundString = hint.Found ?
-                        ColorHelpers.SetColor("Found", Archipelago.MultiClient.Net.Models.Color.Green) :
-                        ColorHelpers.SetColor("Not Found", Archipelago.MultiClient.Net.Models.Color.Red);
+                        ColorHelpers.SetColor("Found", Colors.Hints.found) :
+                        ColorHelpers.SetColor("Not Found", Colors.Hints.Unfound);
 
-                    if (hint.ItemFlags.HasFlag(ItemFlags.Advancement)) { Item = Item.SetColor(Archipelago.MultiClient.Net.Models.Color.Plum); }
-                    else if (hint.ItemFlags.HasFlag(ItemFlags.NeverExclude)) { Item = Item.SetColor(Archipelago.MultiClient.Net.Models.Color.SlateBlue); }
-                    else if (hint.ItemFlags.HasFlag(ItemFlags.NeverExclude)) { Item = Item.SetColor(Archipelago.MultiClient.Net.Models.Color.Salmon); }
-                    else { Item = Item.SetColor(Archipelago.MultiClient.Net.Models.Color.Cyan); }
+                    if (hint.ItemFlags.HasFlag(ItemFlags.Advancement)) { Item = Item.SetColor(Colors.Items.Progression); }
+                    else if (hint.ItemFlags.HasFlag(ItemFlags.NeverExclude)) { Item = Item.SetColor(Colors.Items.Important); }
+                    else if (hint.ItemFlags.HasFlag(ItemFlags.Trap)) { Item = Item.SetColor(Colors.Items.Traps); }
+                    else { Item = Item.SetColor(Colors.Items.Normal); }
 
-                    Location = Location.SetColor(Archipelago.MultiClient.Net.Models.Color.Green);
+                    Location = Location.SetColor(Colors.Location);
+                    var EntranceLine = Entrance.IsNullOrWhiteSpace() ? "" :
+                        $" at {Entrance.SetColor(Colors.Entrance)}";
 
                     FindingPlayerName = FindingPlayer.Slot == TargetPlayer.Slot ?
-                        FindingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Magenta) :
-                        FindingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Yellow);
+                        FindingPlayerName.SetColor(Colors.Players.Local) :
+                        FindingPlayerName.SetColor(Colors.Players.Other);
 
                     ReceivingPlayerName = ReceivingPlayer.Slot == TargetPlayer.Slot ?
-                        ReceivingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Magenta) :
-                        ReceivingPlayerName.SetColor(Archipelago.MultiClient.Net.Models.Color.Yellow);
-                    string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} ({FoundString})";
+                        ReceivingPlayerName.SetColor(Colors.Players.Local) :
+                        ReceivingPlayerName.SetColor(Colors.Players.Other);
+                    string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} {EntranceLine}({FoundString})";
 
                     Messages.Add(Data.socketTextChannel.CreateSimpleQueuedMessage(HintLine));
                 }

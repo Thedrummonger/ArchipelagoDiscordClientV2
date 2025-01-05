@@ -10,7 +10,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
         public static string SetColor(this string input, Archipelago.MultiClient.Net.Models.Color color)
         {
-            if (!Constants.ColorCodes.TryGetValue(color, out Tuple<string, string>? Parts)) { return input; }
+            if (!Constants.Colors.ColorCodes.TryGetValue(color, out Tuple<string, string>? Parts)) { return input; }
             return $"{Parts.Item1}{input}{Parts.Item2}";
         }
     }

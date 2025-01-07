@@ -44,33 +44,8 @@ namespace ArchipelagoDiscordClient
             //Run a background task to constantly send messages in the send queue
             _ = Task.Run(BotClient.MessageQueueHandler.ProcessMessageQueueAsync);
 
-            _ = Task.Run(() => CheckServerLife(BotClient));
-
             //TODO, maybe just replace this with a loop to handle console commands on the server it's self
             await Task.Delay(-1);
-        }
-
-        private async Task CheckServerLife(DiscordBot bot)
-        {
-            //Archipelagos SocketClosed event doesn't seem to trigger when the server is closed?
-            //for now we'll just check the connections manually every few seconds.
-            while (true) 
-            { 
-                List<ulong> SessionKeys = [.. bot.ActiveSessions.Keys];
-                Debug.WriteLine($"Checking Sessions {SessionKeys.ToFormattedJson()}");
-                foreach(var i in SessionKeys)
-                {
-                    if (!bot.ActiveSessions.TryGetValue(i, out ActiveBotSession? ActiveSession)) { continue; }
-                    try { ActiveSession.archipelagoSession.DataStorage.GetClientStatus(); }
-                    catch
-                    {
-                        if (!bot.ActiveSessions.ContainsKey(i)) { continue; }   
-                        _ = archipelagoConnectionHelpers.CleanAndCloseChannel(bot, i);
-                        bot.QueueMessage(ActiveSession.DiscordChannel!, $"Connection closed:\nServer no longer reachable");
-                    }
-                }
-                await Task.Delay(5000);
-            }
         }
     }
 }

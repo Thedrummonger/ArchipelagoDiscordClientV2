@@ -10,7 +10,7 @@
     public class SessionSetting
     {
         public HashSet<string> IgnoreTags { get; set; } = [];
-        public bool IgnoreLeaveJoin { get; set; } = false;
+        public bool IgnoreLeaveJoin { get; set; } = true;
         public bool IgnoreItemSend { get; set; } = false;
         public bool IgnoreHints { get; set; } = false;
         public bool IgnoreChats { get; set; } = false;

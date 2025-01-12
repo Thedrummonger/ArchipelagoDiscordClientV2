@@ -37,6 +37,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             {
                 HashSet<ulong> ToPing = [];
                 if (hintItemSendLog.Receiver.Slot == hintItemSendLog.Sender.Slot) return [];
+                if (hintItemSendLog.IsFound) return [];
                 foreach (var i in session.settings.SlotAssociations)
                 {
                     if (!i.Value.Contains(hintItemSendLog.Sender.Name)) { continue; }

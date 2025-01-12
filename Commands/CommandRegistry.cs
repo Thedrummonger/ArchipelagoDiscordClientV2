@@ -29,13 +29,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         }
         public async Task Initialize()
         {
-            var Client = _discordBot.GetClient();
-            foreach (var item in Commands)
-            {
-                Console.WriteLine($"Registering Command {item.Key}");
-                var CommandProperties = item.Value.Properties ?? throw new Exception($"Command {item.Key} has no properties");
-                await Client.CreateGlobalApplicationCommandAsync(CommandProperties);
-            }
+            await _discordBot.GetClient().BulkOverwriteGlobalApplicationCommandsAsync(Commands.Values.Select(x => x.Properties).ToArray());
         }
     }
 

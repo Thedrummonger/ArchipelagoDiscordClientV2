@@ -34,16 +34,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
             void MessageLog_OnMessageReceived(LogMessage message)
             {
-                Console.WriteLine($"{AuxiliaryConnection.Players.ActivePlayer.Name}|{message.GetType()}");
                 if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) return;
 
                 switch (message)
                 {
                     case HintItemSendLogMessage hintItemSendLogMessage:
-                        Console.WriteLine($"Player Specific Log Message received for Auxiliary Slot " +
-                            $"{AuxiliaryConnection.Players.ActivePlayer.Name}\n" +
-                            $"{message.ToFormattedJson()}");
                         var MessageString = message.ColorLogMessage();
                         var queuedMessage = botSession.DiscordChannel.CreateSimpleQueuedMessage(MessageString, message.ToString());
                         queuedMessage.UsersToPing = message.GetUserPings(botSession);
@@ -74,8 +70,6 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 Console.WriteLine($"{botSession.archipelagoSession.Players.ActivePlayer.Name}|{message.GetType()}");
                 if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
-
-                Console.WriteLine($"Message received for active slot\n{message.ToFormattedJson()}");
 
                 var MessageString = message.ColorLogMessage();
                 var queuedMessage = botSession.DiscordChannel.CreateSimpleQueuedMessage(MessageString, message.ToString());

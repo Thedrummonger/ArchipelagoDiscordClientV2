@@ -3,6 +3,7 @@ using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using TDMUtils;
 using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
+using ArchipelagoDiscordClientLegacy.Helpers;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
@@ -18,20 +19,12 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out CommandData.CommandDataModel Data, out string result))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
+                    await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
-
-                // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
-                {
-                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
-                    return;
-                }
-                await PrintSettings(command, ActiveSession);
+                await PrintSettings(command, session!);
             }
         }
 
@@ -56,17 +49,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
-                    return;
-                }
-
-                // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
-                {
-                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
                 var setting = (int)(Data.GetArg("setting")?.GetValue<long>() ?? 0);
@@ -75,23 +60,23 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 switch (setting)
                 {
                     case (int)SettingEnum.IgnoreLeaveJoin:
-                        ActiveSession.settings.IgnoreLeaveJoin = value ?? !ActiveSession.settings.IgnoreLeaveJoin;
+                        ActiveSession!.settings.IgnoreLeaveJoin = value ?? !ActiveSession.settings.IgnoreLeaveJoin;
                         break;
                     case (int)SettingEnum.IgnoreItemSend:
-                        ActiveSession.settings.IgnoreItemSend = value ?? !ActiveSession.settings.IgnoreItemSend;
+                        ActiveSession!.settings.IgnoreItemSend = value ?? !ActiveSession.settings.IgnoreItemSend;
                         break;
                     case (int)SettingEnum.IgnoreChats:
-                        ActiveSession.settings.IgnoreChats = value ?? !ActiveSession.settings.IgnoreChats;
+                        ActiveSession!.settings.IgnoreChats = value ?? !ActiveSession.settings.IgnoreChats;
                         break;
                     case (int)SettingEnum.IgnoreConnectedPlayerChats:
-                        ActiveSession.settings.IgnoreConnectedPlayerChats = value ?? !ActiveSession.settings.IgnoreConnectedPlayerChats;
+                        ActiveSession!.settings.IgnoreConnectedPlayerChats = value ?? !ActiveSession.settings.IgnoreConnectedPlayerChats;
                         break;
                     default:
                         await command.RespondAsync($"Invalid option", ephemeral: true);
                         return;
                 }
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
-                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                discordBot.UpdateConnectionCache();
                 await PrintSettings(command, ActiveSession);
             }
         }
@@ -108,17 +93,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
-                    return;
-                }
-
-                // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
-                {
-                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
                 var add = Data.GetArg("add")?.GetValue<bool>() ?? true;
@@ -126,11 +103,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var values = value.TrimSplit(",").Select(x => x.Trim().ToLower()).ToHashSet();
                 foreach (var v in values)
                 {
-                    if (add) { ActiveSession.settings.IgnoreTags.Add(v); }
-                    else { ActiveSession.settings.IgnoreTags.Remove(v); }
+                    if (add) { ActiveSession!.settings.IgnoreTags.Add(v); }
+                    else { ActiveSession!.settings.IgnoreTags.Remove(v); }
                 }
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
-                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession!.settings;
+                discordBot.UpdateConnectionCache();
                 await PrintSettings(command, ActiveSession);
             }
         }

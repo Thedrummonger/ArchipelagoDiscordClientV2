@@ -1,6 +1,7 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
 using Discord.WebSocket;
+using System.Diagnostics;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
@@ -81,6 +82,10 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             commandRegistry.AddCommand(new AppSettingManagementCommands.PrintAppSettingsCommand());
             commandRegistry.AddCommand(new AppSettingManagementCommands.ToggleAppSettings());
             commandRegistry.AddCommand(new AppSettingManagementCommands.EditTagIgnoreList());
+            if (Debugger.IsAttached)
+            {
+                commandRegistry.AddCommand(new DevCommands.DevGoalCommand());
+            }
         }
     }
 }

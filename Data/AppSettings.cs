@@ -3,7 +3,7 @@
     public class AppSettings
     {
         public string BotToken = "";
-        public int DiscordRateLimitDelay = 100;
+        public int DiscordRateLimitDelay = 500; //Despite what the docs say, the rate limit is 2 messages a second per channel
         public SessionSetting AppDefaultSettings = new() { IgnoreTags = ["tracker", "textonly"] };
     }
 

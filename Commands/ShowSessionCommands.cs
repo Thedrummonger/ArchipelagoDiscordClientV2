@@ -1,4 +1,5 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
+using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
@@ -53,19 +54,17 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                // Check if the channel has an active session
-                if (!discordBot.ActiveSessions.ContainsKey(Data.channelId))
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out _, out string Error))
                 {
-                    await command.RespondAsync("No active Archipelago session in this channel.", ephemeral: true);
+                    await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
-                var APSession = discordBot.ActiveSessions[Data.channelId].archipelagoSession;
-
+                var APSession = ActiveSession!.archipelagoSession;
                 // Build the response
                 var response = $"**Active Archipelago Session**\n" +
                                $"  **Server**: {APSession.Socket.Uri}\n" +
-                               $"  **Player**: {APSession.Players.GetPlayerName(APSession.ConnectionInfo.Slot)}({APSession.ConnectionInfo.Slot})\n";
+                               $"  **Player**: {APSession.Players.ActivePlayer.Name}({APSession.ConnectionInfo.Slot})\n" +
+                               $"  **Game**: {APSession.Players.ActivePlayer.Game}";
 
                 await command.RespondAsync(response, ephemeral: true);
             }

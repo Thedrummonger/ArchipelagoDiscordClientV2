@@ -23,21 +23,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out CommandData.CommandDataModel Data, out string Error))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
+                    await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
 
-                // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var session))
-                {
-                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
-                    return;
-                }
-
-                var TargetPlayer = session.archipelagoSession.Players.ActivePlayer;
+                var TargetPlayer = session!.archipelagoSession.Players.ActivePlayer;
                 var PlayerNameArg = Data.GetArg("player")?.Value;
                 if (PlayerNameArg is string PlayerNameString)
                 {
@@ -88,7 +80,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         ReceivingPlayerName.SetColor(Colors.Players.Other);
                     string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} {EntranceLine}({FoundString})";
 
-                    Messages.Add(Data.socketTextChannel.CreateSimpleQueuedMessage(HintLine));
+                    Messages.Add(Data.socketTextChannel!.CreateSimpleQueuedMessage(HintLine));
                 }
                 if (Messages.Count < 1)
                 {

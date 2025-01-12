@@ -29,6 +29,8 @@ namespace ArchipelagoDiscordClient
             if (Config.BotToken.IsNullOrWhiteSpace()) { throw new Exception($"Bot key not valid"); }
             DiscordBot BotClient = new DiscordBot(Config);
 
+            Console.WriteLine($"Message Delay {BotClient.appSettings.DiscordRateLimitDelay}");
+
             BotClient.ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionContructor>(), true);
 
             BotClient.GetClient().Ready += BotClient.commandRegistry.Initialize;

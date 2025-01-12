@@ -25,17 +25,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, false, out CommandData.CommandDataModel Data, out string result))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
-                    return;
-                }
-
-                // Ensure the channel is not already connected
-                if (discordBot.ActiveSessions.ContainsKey(Data.channelId))
-                {
-                    await command.RespondAsync("This channel is already connected to an Archipelago session.", ephemeral: true);
+                    await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
 
@@ -76,17 +68,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, false, out CommandData.CommandDataModel Data, out string result))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
-                    return;
-                }
-
-                // Ensure the channel is not already connected
-                if (discordBot.ActiveSessions.ContainsKey(Data.channelId))
-                {
-                    await command.RespondAsync("This channel is already connected to an Archipelago session.", ephemeral: true);
+                    await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
 
@@ -110,17 +94,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, true, out CommandData.CommandDataModel Data, out string result))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
-                    return;
-                }
-
-                // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var session))
-                {
-                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
 

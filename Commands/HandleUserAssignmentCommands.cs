@@ -1,4 +1,5 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
+using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
 using System.Collections.Generic;
@@ -22,30 +23,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
-                    return;
-                }
-
-                // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
-                {
-                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
 
                 var user = Data.GetArg("user")?.GetValue<SocketUser>();
                 var players = Data.GetArg("players")?.GetValue<string?>();
 
-                if (!ActiveSession.settings.SlotAssociations.ContainsKey(user!.Id!))
+                if (!ActiveSession!.settings.SlotAssociations.ContainsKey(user!.Id!))
                 {
                     await command.RespondAsync($"There are no slot associations for {user!.Username}.", ephemeral: true);
                     return;
                 }
 
-                var PlayerList = players!.TrimSplit(",").ToHashSet(); //Players passed by the command
+                var PlayerList = players!.TrimSplit(",").ToHashSet();
 
                 HashSet<string> valid = [];
                 HashSet<string> invalid = [];
@@ -68,7 +61,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     MessageParts.AddRange(invalid.Select(x => $"-{x}"));
                 }
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
-                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                discordBot.UpdateConnectionCache();
                 await command.RespondAsync(String.Join("\n", MessageParts));
             }
         }
@@ -85,24 +78,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                var Data = command.GetCommandData();
-                if (Data.socketTextChannel is null)
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
                 {
-                    await command.RespondAsync("Only Text Channels are Supported", ephemeral: true);
-                    return;
-                }
-
-                // Check if the guild and channel have an active session
-                if (!discordBot.ActiveSessions.TryGetValue(Data.channelId, out var ActiveSession))
-                {
-                    await command.RespondAsync("This channel is not connected to any Archipelago session.", ephemeral: true);
+                    await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
 
                 var user = Data.GetArg("user")?.GetValue<SocketUser>();
                 var players = Data.GetArg("players")?.GetValue<string?>();
 
-                var APPlayers = ActiveSession.archipelagoSession.Players.AllPlayers.Select(p => p.Name);
+                var APPlayers = ActiveSession!.archipelagoSession.Players.AllPlayers.Select(p => p.Name);
 
                 ActiveSession.settings.SlotAssociations!.SetIfEmpty(user!.Id, []);
 
@@ -142,7 +127,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
 
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
-                File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                discordBot.UpdateConnectionCache();
 
                 await command.RespondAsync(String.Join("\n", MessageParts));
             }

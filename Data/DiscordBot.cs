@@ -2,6 +2,7 @@
 using ArchipelagoDiscordClientLegacy.Handlers;
 using Discord;
 using Discord.WebSocket;
+using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
 namespace ArchipelagoDiscordClientLegacy.Data
@@ -39,6 +40,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
             {
                 await Client!.LoginAsync(TokenType.Bot, appSettings.BotToken.Trim());
                 await Client.StartAsync();
+            }
+            public void UpdateConnectionCache()
+            {
+                File.WriteAllText(Constants.Paths.ConnectionCache, ConnectionCache.ToFormattedJson());
             }
         }
 

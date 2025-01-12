@@ -49,17 +49,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     trackingList.Add(player);
                 }
 
-                List<string> MessageParts = [];
-                if (valid.Count > 0)
-                {
-                    MessageParts.Add($"The following players were removed from {user!.Username}");
-                    MessageParts.AddRange(valid.Select(x => $"-{x}"));
-                }
-                if (invalid.Count > 0)
-                {
-                    MessageParts.Add($"The following players were not associated with {user!.Username}");
-                    MessageParts.AddRange(invalid.Select(x => $"-{x}"));
-                }
+                List<string> MessageParts = 
+                    [
+                    ..valid.CreateResultList($"The following players were removed from {user!.Username}"),
+                    ..invalid.CreateResultList($"The following players were not associated with {user!.Username}")
+                    ];
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
                 discordBot.UpdateConnectionCache();
                 await command.RespondAsync(String.Join("\n", MessageParts));
@@ -109,22 +103,12 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     var UpdateList = WasAdded ? AddedPlayers : AlreadyAssigned;
                 }
 
-                List<string> MessageParts = [];
-                if (PlayerList.Count > 0)
-                {
-                    MessageParts.Add($"The following players were associated to {user!.Username}");
-                    MessageParts.AddRange(PlayerList.Select(x => $"-{x}"));
-                }
-                if (AlreadyAssigned.Count > 0)
-                {
-                    MessageParts.Add($"The following players were already assigned to {user!.Username}");
-                    MessageParts.AddRange(AlreadyAssigned.Select(x => $"-{x}"));
-                }
-                if (InvalidPlayers.Count > 0)
-                {
-                    MessageParts.Add($"The following players were not valid players in archipelago");
-                    MessageParts.AddRange(InvalidPlayers.Select(x => $"-{x}"));
-                }
+                List<string> MessageParts = 
+                    [
+                    ..PlayerList.CreateResultList($"The following players were associated to {user!.Username}"),
+                    ..AlreadyAssigned.CreateResultList($"The following players were already assigned to {user!.Username}"),
+                    ..InvalidPlayers.CreateResultList($"The following players were not valid players in archipelago"),
+                    ];
 
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
                 discordBot.UpdateConnectionCache();

@@ -12,6 +12,7 @@
         public HashSet<string> IgnoreTags { get; set; } = [];
         public bool IgnoreLeaveJoin { get; set; } = false;
         public bool IgnoreItemSend { get; set; } = false;
+        public bool IgnoreHints { get; set; } = false;
         public bool IgnoreChats { get; set; } = false;
         public bool IgnoreConnectedPlayerChats { get; set; } = true;
         public Dictionary<ulong, HashSet<string>> SlotAssociations { get; set; } = [];
@@ -22,6 +23,7 @@
         IgnoreLeaveJoin = 1,
         IgnoreItemSend = 2,
         IgnoreChats = 3,
-        IgnoreConnectedPlayerChats = 4
+        IgnoreConnectedPlayerChats = 4,
+        IgnoreHints = 5
     }
 }

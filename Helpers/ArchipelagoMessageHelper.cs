@@ -1,4 +1,7 @@
 ﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
+using ArchipelagoDiscordClientLegacy.Data;
+using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
@@ -6,6 +9,74 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 {
     public static class ArchipelagoMessageHelper
     {
+        public static HashSet<ulong> GetUserPings(this LogMessage message, ActiveBotSession session)
+        {
+            switch (message)
+            {
+                case HintItemSendLogMessage hintItemSendLog:
+                    return GetHintPing(hintItemSendLog);
+                case ItemSendLogMessage itemSendMessage:
+                    return GetItemSendPings(itemSendMessage);
+                default: 
+                    return [];
+            }
+            HashSet<ulong> GetItemSendPings(ItemSendLogMessage itemSendMessage)
+            {
+                HashSet<ulong> ToPing = [];
+                if (!itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)) return [];
+                if (itemSendMessage.Receiver.Slot == itemSendMessage.Sender.Slot) return [];
+                foreach (var i in session.settings.SlotAssociations)
+                {
+                    if (!i.Value.Contains(itemSendMessage.Receiver.Name)) { continue; }
+                    if (i.Value.Contains(itemSendMessage.Sender.Name)) { continue; } //Same player, different slot
+                    ToPing.Add(i.Key);
+                }
+                return ToPing;
+            }
+            HashSet<ulong> GetHintPing(HintItemSendLogMessage hintItemSendLog)
+            {
+                HashSet<ulong> ToPing = [];
+                if (hintItemSendLog.Receiver.Slot == hintItemSendLog.Sender.Slot) return [];
+                foreach (var i in session.settings.SlotAssociations)
+                {
+                    if (!i.Value.Contains(hintItemSendLog.Sender.Name)) { continue; }
+                    if (i.Value.Contains(hintItemSendLog.Receiver.Name)) { continue; } //Same player, different slot
+                    ToPing.Add(i.Key);
+                }
+                return ToPing;
+            }
+
+        }
+        public static string ColorLogMessage(this LogMessage message)
+        {
+            StringBuilder FormattedMessage = new StringBuilder();
+            foreach (var part in message.Parts)
+            {
+                FormattedMessage.Append(part.Text.SetColor(part.Color));
+            }
+            return FormattedMessage.ToString();
+        }
+
+        public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session)
+        {
+            //We can assume this is always true since the message is only sent to the sender and receiver
+            //if (!hintLogMessage.IsRelatedToActivePlayer) return false;
+
+            //A list of players that would print this hint message when it is received
+            HashSet<string> ListeningPlayers = [session.archipelagoSession.Players.ActivePlayer.Name, ..session.SupportSessions.Keys];
+
+            //The slot receiving the message should always take priority
+            if (hintLogMessage.IsReceiverTheActivePlayer) return true;
+
+            //At this point we know we are the sender of the item
+
+            //If the receiver of the item is not an active slot in the session, we should send the hint
+            if (!ListeningPlayers.Contains(hintLogMessage.Receiver.Name)) return true;
+
+            //This should only return false if We are the sender, but the receiver is an active slot in the session
+            return false;
+        }
+
         public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session)
         {
             switch (logMessage)
@@ -22,7 +93,9 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 case LeaveLogMessage message:
                     return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.GetTags().Select(x => x.ToLower())).Any();
 
-                case HintItemSendLogMessage:
+                case HintItemSendLogMessage message:
+                    return session.settings.IgnoreItemSend || !message.ShouldRelayHintMessage(session);
+
                 case ItemCheatLogMessage:
                 case ItemSendLogMessage:
                     return session.settings.IgnoreItemSend;

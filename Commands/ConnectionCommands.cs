@@ -138,7 +138,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         sessionConstructor.archipelagoConnectionInfo!.Game,
                         sessionConstructor.archipelagoConnectionInfo!.Name,
                         ItemsHandlingFlags.AllItems,
-                        new Version(0, 5, 1),
+                        Constants.APVersion,
                         ["TextOnly"], null,
                         sessionConstructor.archipelagoConnectionInfo!.Password,
                         true);
@@ -160,15 +160,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
                         $"{sessionConstructor.archipelagoConnectionInfo!.Name}.");
 
-                    // Store the session
-                    discordBot.ActiveSessions[Data.channelId] = new Sessions.ActiveBotSession(sessionConstructor.Settings!)
+                    var NewSession = new Sessions.ActiveBotSession(sessionConstructor.Settings!)
                     {
                         DiscordChannel = Data.socketTextChannel!,
                         archipelagoSession = session,
+                        ConnectionInfo = sessionConstructor.archipelagoConnectionInfo
                     };
+                    // Store the session
+                    discordBot.ActiveSessions[Data.channelId] = NewSession;
                     discordBot.ConnectionCache[Data.channelId] = sessionConstructor;
-
-                    session.CreateArchipelagoHandlers(discordBot, discordBot.ActiveSessions[Data.channelId]);
+                    NewSession.CreateArchipelagoHandlers(discordBot);
 
                     File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
 

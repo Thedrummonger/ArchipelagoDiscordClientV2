@@ -1,4 +1,6 @@
-﻿using ArchipelagoDiscordClientLegacy.Data;
+﻿using Archipelago.MultiClient.Net.MessageLog.Parts;
+using ArchipelagoDiscordClientLegacy.Data;
+using Discord;
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
@@ -26,7 +28,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 Error = "Only Text Channels are Supported";
             }
 
-            if (discordBot.ActiveSessions.ContainsKey(commandData.channelId) == CheckConnected)
+            if (discordBot.ActiveSessions.ContainsKey(commandData.channelId) != CheckConnected)
             {
                 Error = CheckConnected ? 
                     "This channel is not connected to an Archipelago session." : 
@@ -47,6 +49,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             if (!Validate(command, discordBot, true, out commandData, out Result)) return false;
             if (!discordBot.ActiveSessions.TryGetValue(commandData.channelId, out session)) return false; //Should never be false
             return true;
+        }
+
+        public static string[] CreateResultList(this IEnumerable<string> Values, string Status)
+        {
+            if (!Values.Any()) return [];
+            return [Status, .. Values.Select(x => $"-{x}")];
         }
     }
 }

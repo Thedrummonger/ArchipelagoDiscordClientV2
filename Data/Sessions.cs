@@ -10,8 +10,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
         {
             public required SocketTextChannel DiscordChannel;
             public required ArchipelagoSession archipelagoSession;
+            public Dictionary<string, ArchipelagoSession> SupportSessions = [];
             public string? OriginalChannelName = null;
             public SessionSetting settings = DefaultSettings.DeepClone();
+            public required ArchipelagoConnectionInfo ConnectionInfo;
         }
 
         public class ArchipelagoConnectionInfo

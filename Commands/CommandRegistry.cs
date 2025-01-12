@@ -82,6 +82,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             commandRegistry.AddCommand(new AppSettingManagementCommands.PrintAppSettingsCommand());
             commandRegistry.AddCommand(new AppSettingManagementCommands.ToggleAppSettings());
             commandRegistry.AddCommand(new AppSettingManagementCommands.EditTagIgnoreList());
+            commandRegistry.AddCommand(new AuxiliarySessionCommands.AddAuxiliarySessionsCommand());
+            commandRegistry.AddCommand(new AuxiliarySessionCommands.RemoveAuxiliarySessionsCommand());
+            commandRegistry.AddCommand(new AuxiliarySessionCommands.SendAsAuxiliarySession());
             if (Debugger.IsAttached)
             {
                 commandRegistry.AddCommand(new DevCommands.DevGoalCommand());

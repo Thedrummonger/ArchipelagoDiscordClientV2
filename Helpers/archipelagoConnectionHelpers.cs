@@ -1,10 +1,13 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using Archipelago.MultiClient.Net.MessageLog.Parts;
+using ArchipelagoDiscordClientLegacy.Commands;
 using ArchipelagoDiscordClientLegacy.Data;
 using Discord.WebSocket;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Text;
+using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
@@ -19,55 +22,65 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Id} from server {session.archipelagoSession.ConnectionInfo.Slot}");
             if (session.archipelagoSession.Socket.Connected) { await session.archipelagoSession.Socket.DisconnectAsync(); }
         }
-
-        public static void CreateArchipelagoHandlers(this ArchipelagoSession session, DiscordBot discordBot, Sessions.ActiveBotSession BotSession)
+        /// <summary>
+        /// Creates the archipelago handlers for the given auxiliary slot connection
+        /// </summary>
+        /// <param name="botSession"></param>
+        /// <param name="discordBot"></param>
+        /// <param name="AuxiliaryConnection"></param>
+        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, DiscordBot discordBot, ArchipelagoSession AuxiliaryConnection)
         {
-            session.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
-            session.Socket.SocketClosed += async (reason) =>
+            AuxiliaryConnection.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
+
+            void MessageLog_OnMessageReceived(LogMessage message)
             {
-                if (!discordBot.ActiveSessions.ContainsKey(BotSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
-                await CleanAndCloseChannel(discordBot, BotSession.DiscordChannel.Id);
-                discordBot.QueueMessage(BotSession.DiscordChannel!, $"Connection closed:\n{reason}");
+                Console.WriteLine($"{AuxiliaryConnection.Players.ActivePlayer.Name}|{message.GetType()}");
+                if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
+                if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) return;
+
+                switch (message)
+                {
+                    case HintItemSendLogMessage hintItemSendLogMessage:
+                        Console.WriteLine($"Player Specific Log Message received for Auxiliary Slot " +
+                            $"{AuxiliaryConnection.Players.ActivePlayer.Name}\n" +
+                            $"{message.ToFormattedJson()}");
+                        var MessageString = message.ColorLogMessage();
+                        var queuedMessage = botSession.DiscordChannel.CreateSimpleQueuedMessage(MessageString, message.ToString());
+                        queuedMessage.UsersToPing = message.GetUserPings(botSession);
+                        discordBot.QueueMessage(queuedMessage);
+                        break;
+                    case CommandResultLogMessage commandResultLogMessage:
+                        discordBot.QueueMessage(botSession.DiscordChannel, commandResultLogMessage.ToString());
+                        break;
+                }
+            }
+        }
+        /// <summary>
+        /// Creates the archipelago handlers for the main slot connection
+        /// </summary>
+        /// <param name="botSession"></param>
+        /// <param name="discordBot"></param>
+        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, DiscordBot discordBot)
+        {
+            botSession.archipelagoSession.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
+            botSession.archipelagoSession.Socket.SocketClosed += async (reason) =>
+            {
+                if (!discordBot.ActiveSessions.ContainsKey(botSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
+                await CleanAndCloseChannel(discordBot, botSession.DiscordChannel.Id);
+                discordBot.QueueMessage(botSession.DiscordChannel!, $"Connection closed:\n{reason}");
             };
             void MessageLog_OnMessageReceived(LogMessage message)
             {
-                if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, BotSession)) { return; }
-                StringBuilder FormattedMessage = new StringBuilder();
-                StringBuilder RawMessage = new StringBuilder();
+                Console.WriteLine($"{botSession.archipelagoSession.Players.ActivePlayer.Name}|{message.GetType()}");
+                if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
+                if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
 
-                foreach (var part in message.Parts)
-                {
-                    FormattedMessage.Append(part.Text.SetColor(part.Color));
-                    RawMessage.Append(part.Text);
-                }
-                if (string.IsNullOrWhiteSpace(FormattedMessage.ToString())) { return; }
+                Console.WriteLine($"Message received for active slot\n{message.ToFormattedJson()}");
 
-                HashSet<ulong> ToPing = [];
-
-                if (message is ItemSendLogMessage itemSendMessage && 
-                    itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)
-                    && itemSendMessage.Receiver.Slot != itemSendMessage.Sender.Slot)
-                {
-                    foreach (var i in BotSession.settings.SlotAssociations)
-                    {
-                        if (!i.Value.Contains(itemSendMessage.Receiver.Name)) { continue; }
-                        if (i.Value.Contains(itemSendMessage.Sender.Name)) { continue; } //Same player, different slot
-                        ToPing.Add(i.Key);
-                        ToPing.Add(i.Key);
-                    }
-                }
-
-                Console.WriteLine($"Queueing message from AP session " +
-                    $"{session.Socket.Uri} {session.Players.GetPlayerName(session.ConnectionInfo.Slot)} {session.ConnectionInfo.Game}");
-
-                MessageQueueData.QueuedMessage queuedMessage = new MessageQueueData.QueuedMessage()
-                {
-                    Channel = BotSession.DiscordChannel,
-                    Message = FormattedMessage.ToString(),
-                    RawMessage = RawMessage.ToString(),
-                    UsersToPing = ToPing
-                };
-                MessageQueueData.QueueMessage(queuedMessage, discordBot);
+                var MessageString = message.ColorLogMessage();
+                var queuedMessage = botSession.DiscordChannel.CreateSimpleQueuedMessage(MessageString, message.ToString());
+                queuedMessage.UsersToPing = message.GetUserPings(botSession);
+                discordBot.QueueMessage(queuedMessage);
             }
         }
     }

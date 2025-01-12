@@ -12,12 +12,12 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public string RawMessage = "";
             public HashSet<ulong> UsersToPing = [];
         }
-        public static QueuedMessage CreateSimpleQueuedMessage(this SocketTextChannel channel, string Message)
+        public static QueuedMessage CreateSimpleQueuedMessage(this SocketTextChannel channel, string Message, string? raw = null)
         {
             return new QueuedMessage
             {
                 Message = Message,
-                RawMessage = Message,
+                RawMessage = raw??Message,
                 Channel = channel,
                 UsersToPing = []
             };

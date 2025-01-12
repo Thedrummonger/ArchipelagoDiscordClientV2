@@ -2,6 +2,7 @@
 {
     public static class Constants
     {
+        public static readonly Version APVersion = new Version(0, 5, 1);
         public class Colors
         {
             public class Hints

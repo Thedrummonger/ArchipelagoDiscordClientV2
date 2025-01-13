@@ -60,7 +60,6 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             };
             void MessageLog_OnMessageReceived(LogMessage message)
             {
-                Console.WriteLine($"{botSession.archipelagoSession.Players.ActivePlayer.Name}|{message.GetType()}");
                 if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
 

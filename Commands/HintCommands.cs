@@ -80,7 +80,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         ReceivingPlayerName.SetColor(Colors.Players.Other);
                     string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} {EntranceLine}({FoundString})";
 
-                    Messages.Add(Data.socketTextChannel!.CreateSimpleQueuedMessage(HintLine));
+                    Messages.Add(Data.textChannel!.CreateSimpleQueuedMessage(HintLine));
                 }
                 if (Messages.Count < 1)
                 {

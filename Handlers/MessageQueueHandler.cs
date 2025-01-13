@@ -19,7 +19,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                     if (queue.Count > 0)
                     {
                         var FirstItem = queue.Peek();
-                        if (FirstItem.Channel is not SocketTextChannel channel)
+                        if (FirstItem.Channel is not ISocketMessageChannel channel)
                             throw new Exception("Channel from Queue was null, this should not happen!");
 
                         List<string> sendBatch = [];
@@ -35,7 +35,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 
                             var QueuedItem = queue.Dequeue();
                             sendBatch.Add(QueuedItem.Message);
-                            foreach(var user in PeekedItem.UsersToPing)
+                            foreach (var user in PeekedItem.UsersToPing)
                                 ToPing.Add(user);
                         }
 

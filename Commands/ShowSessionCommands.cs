@@ -18,8 +18,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
+                if (command.Channel is not SocketTextChannel)
+                {
+                    await command.RespondAsync("This channel is not part of a Guild", ephemeral: true);
+                    return;
+                }
+
                 var Guild = command.GuildId;
-                var SessionsInGuild = discordBot.ActiveSessions.Values.Where(x => x.DiscordChannel.Guild.Id == Guild).ToArray();
+                var SessionsInGuild = discordBot.ActiveSessions.Values.Where(x => x.DiscordChannel is SocketTextChannel stc && stc.Guild.Id == Guild).ToArray();
 
                 // Check if the guild has active sessions
                 if (SessionsInGuild.Length == 0)

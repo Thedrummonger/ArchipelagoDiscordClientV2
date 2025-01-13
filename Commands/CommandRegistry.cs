@@ -1,5 +1,4 @@
-﻿using ArchipelagoDiscordClientLegacy.Data;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using System.Diagnostics;
 using TDMUtils;
@@ -10,7 +9,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
     public class CommandRegistry
     {
         private DiscordBot _discordBot;
-        public CommandRegistry(DiscordBot bot) 
+        public CommandRegistry(DiscordBot bot)
         {
             _discordBot = bot;
             var CommandCreation = new CommandCreation();
@@ -43,7 +42,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         public Task ExecuteCommand(SocketSlashCommand c, DiscordBot d) => Execute(c, d);
         public SlashCommand SetProperties(SlashCommandBuilder _Properties)
         {
-            if (!_Properties.Name.IsNullOrWhiteSpace()) 
+            if (!_Properties.Name.IsNullOrWhiteSpace())
             {
                 throw new Exception($"Name is already set in the AddCommand function, do not add a name in the builder");
             }
@@ -73,6 +72,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             commandRegistry.AddCommand(new UserAssignmentCommands.AssignUserCommand());
             commandRegistry.AddCommand(new UserAssignmentCommands.UnAssignUserCommand());
             commandRegistry.AddCommand(new HintCommands.ShowHintsCommand());
+            commandRegistry.AddCommand(new ShowSessionCommands.ShowChannelSessionCommand());
+            commandRegistry.AddCommand(new ShowSessionCommands.ShowServerSessionsCommand());
             commandRegistry.AddCommand(new AppSettingManagementCommands.PrintAppSettingsCommand());
             commandRegistry.AddCommand(new AppSettingManagementCommands.ToggleAppSettings());
             commandRegistry.AddCommand(new AppSettingManagementCommands.EditTagIgnoreList());

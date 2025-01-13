@@ -7,17 +7,17 @@ namespace ArchipelagoDiscordClientLegacy.Data
     {
         public class QueuedMessage
         {
-            public required SocketTextChannel? Channel = null;
+            public required ISocketMessageChannel? Channel = null;
             public required string Message = "";
             public string RawMessage = "";
             public HashSet<ulong> UsersToPing = [];
         }
-        public static QueuedMessage CreateSimpleQueuedMessage(this SocketTextChannel channel, string Message, string? raw = null)
+        public static QueuedMessage CreateSimpleQueuedMessage(this ISocketMessageChannel channel, string Message, string? raw = null)
         {
             return new QueuedMessage
             {
                 Message = Message,
-                RawMessage = raw??Message,
+                RawMessage = raw ?? Message,
                 Channel = channel,
                 UsersToPing = []
             };
@@ -30,10 +30,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
         }
         public static void QueueMessage(this QueuedMessage Message, DiscordBotData.DiscordBot discordBot) => discordBot.QueueMessage(Message);
 
-        public static void QueueMessage(this DiscordBotData.DiscordBot discordBot, SocketTextChannel channel, string Message) =>
+        public static void QueueMessage(this DiscordBotData.DiscordBot discordBot, ISocketMessageChannel channel, string Message) =>
             discordBot.QueueMessage(channel.CreateSimpleQueuedMessage(Message));
 
-        public static void QueueMessage(this SocketTextChannel channel, DiscordBotData.DiscordBot discordBot, string Message) =>
+        public static void QueueMessage(this ISocketMessageChannel channel, DiscordBotData.DiscordBot discordBot, string Message) =>
             discordBot.QueueMessage(channel.CreateSimpleQueuedMessage(Message));
     }
 }

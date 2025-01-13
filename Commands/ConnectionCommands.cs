@@ -1,11 +1,11 @@
-﻿using Archipelago.MultiClient.Net.Enums;
-using Archipelago.MultiClient.Net;
-using Discord.WebSocket;
-using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
+﻿using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.Enums;
 using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
-using TDMUtils;
 using Discord;
+using Discord.WebSocket;
+using TDMUtils;
+using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
@@ -74,7 +74,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                if (!discordBot.ConnectionCache.TryGetValue(Data.socketTextChannel.Id, out Sessions.SessionContructor? connectionCache) || connectionCache is null)
+                if (!discordBot.ConnectionCache.TryGetValue(Data.textChannel!.Id, out Sessions.SessionContructor? connectionCache) || connectionCache is null)
                 {
                     await command.RespondAsync("No previous connection cached for this channel", ephemeral: true);
                     return;
@@ -162,7 +162,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                     var NewSession = new Sessions.ActiveBotSession(sessionConstructor.Settings!)
                     {
-                        DiscordChannel = Data.socketTextChannel!,
+                        DiscordChannel = Data.textChannel!,
                         archipelagoSession = session,
                         ConnectionInfo = sessionConstructor.archipelagoConnectionInfo
                     };

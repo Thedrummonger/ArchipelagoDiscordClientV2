@@ -8,7 +8,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
     {
         public class ActiveBotSession(SessionSetting DefaultSettings)
         {
-            public required SocketTextChannel DiscordChannel;
+            public required ISocketMessageChannel DiscordChannel;
             public required ArchipelagoSession archipelagoSession;
             public Dictionary<string, ArchipelagoSession> SupportSessions = [];
             public string? OriginalChannelName = null;
@@ -27,7 +27,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
 
         public class SessionContructor
         {
-            public ArchipelagoConnectionInfo? archipelagoConnectionInfo {  get; set; }
+            public ArchipelagoConnectionInfo? archipelagoConnectionInfo { get; set; }
             public SessionSetting? Settings { get; set; }
         }
     }

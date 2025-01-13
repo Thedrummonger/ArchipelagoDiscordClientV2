@@ -9,7 +9,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public required ulong guildId { get; set; }
             public required ulong channelId { get; set; }
             public string? channelName { get; set; }
-            public SocketTextChannel? socketTextChannel { get; set; }
+            public ISocketMessageChannel? textChannel { get; set; }
             public Dictionary<string, SocketSlashCommandDataOption> Arguments { get; set; } = [];
             public SocketSlashCommandDataOption? GetArg(string key)
             {
@@ -24,7 +24,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 guildId = command.GuildId ?? 0,
                 channelId = command.ChannelId ?? 0,
                 channelName = command.Channel?.Name,
-                socketTextChannel = command.Channel is SocketTextChannel STC ? STC : null
+                textChannel = command.Channel is ISocketMessageChannel STC ? STC : null
             };
             Data.channelName ??= Data.channelId.ToString();
             foreach (var i in command.Data.Options)

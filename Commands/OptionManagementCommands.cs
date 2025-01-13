@@ -1,9 +1,9 @@
-﻿using Discord.WebSocket;
-using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
-using TDMUtils;
-using ArchipelagoDiscordClientLegacy.Data;
-using Discord;
+﻿using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
+using Discord;
+using Discord.WebSocket;
+using TDMUtils;
+using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {

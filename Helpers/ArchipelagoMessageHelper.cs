@@ -1,6 +1,4 @@
 ﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
-using ArchipelagoDiscordClientLegacy.Data;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
@@ -17,7 +15,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                     return GetHintPing(hintItemSendLog);
                 case ItemSendLogMessage itemSendMessage:
                     return GetItemSendPings(itemSendMessage);
-                default: 
+                default:
                     return [];
             }
             HashSet<ulong> GetItemSendPings(ItemSendLogMessage itemSendMessage)
@@ -64,7 +62,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             //if (!hintLogMessage.IsRelatedToActivePlayer) return false;
 
             //A list of players that would print this hint message when it is received
-            HashSet<string> ListeningPlayers = [session.archipelagoSession.Players.ActivePlayer.Name, ..session.SupportSessions.Keys];
+            HashSet<string> ListeningPlayers = [session.archipelagoSession.Players.ActivePlayer.Name, .. session.SupportSessions.Keys];
 
             //The slot receiving the message should always take priority
             if (hintLogMessage.IsReceiverTheActivePlayer) return true;

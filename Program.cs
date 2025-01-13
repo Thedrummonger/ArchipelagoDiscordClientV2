@@ -1,9 +1,7 @@
-﻿using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
-using ArchipelagoDiscordClientLegacy.Data;
+﻿using ArchipelagoDiscordClientLegacy.Data;
 using TDMUtils;
-using ArchipelagoDiscordClientLegacy.Helpers;
+using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
-using System.Diagnostics;
 
 namespace ArchipelagoDiscordClient
 {
@@ -19,10 +17,10 @@ namespace ArchipelagoDiscordClient
         {
             if (!Path.Exists(Constants.Paths.BaseFilePath)) { Directory.CreateDirectory(Constants.Paths.BaseFilePath); }
             var Config = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConfigFile, new AppSettings(), true);
-            if (Config.BotToken.IsNullOrWhiteSpace()) 
+            if (Config.BotToken.IsNullOrWhiteSpace())
             {
                 Console.WriteLine("Please enter your bot key:");
-                var key = Console.ReadLine()??"";
+                var key = Console.ReadLine() ?? "";
                 Config.BotToken = key;
                 File.WriteAllText(Constants.Paths.ConfigFile, Config.ToFormattedJson());
             }
@@ -36,7 +34,8 @@ namespace ArchipelagoDiscordClient
             BotClient.GetClient().Ready += BotClient.commandRegistry.Initialize;
             BotClient.GetClient().SlashCommandExecuted += BotClient.CommandHandler.HandleSlashCommand;
             BotClient.GetClient().MessageReceived += BotClient.DiscordMessageHandler.HandleDiscordMessageReceivedAsync;
-            BotClient.GetClient().Log += (logMessage) => {
+            BotClient.GetClient().Log += (logMessage) =>
+            {
                 Console.WriteLine(logMessage.ToString());
                 return Task.CompletedTask;
             };

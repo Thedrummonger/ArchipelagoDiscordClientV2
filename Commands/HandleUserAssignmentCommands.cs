@@ -2,8 +2,6 @@
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
-using System.Collections.Generic;
-using System.Linq;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
@@ -42,14 +40,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 HashSet<string> valid = [];
                 HashSet<string> invalid = [];
-                foreach (var player in PlayerList) 
+                foreach (var player in PlayerList)
                 {
                     bool WasRemoved = ActiveSession.settings.SlotAssociations[user!.Id].Remove(player);
                     HashSet<string> trackingList = WasRemoved ? valid : invalid;
                     trackingList.Add(player);
                 }
 
-                List<string> MessageParts = 
+                List<string> MessageParts =
                     [
                     ..valid.CreateResultList($"The following players were removed from {user!.Username}"),
                     ..invalid.CreateResultList($"The following players were not associated with {user!.Username}")
@@ -92,18 +90,18 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 HashSet<string> AddedPlayers = [];
                 HashSet<string> InvalidPlayers = [];
                 HashSet<string> AlreadyAssigned = [];
-                foreach (var Player in PlayerList) 
-                { 
-                    if (!APPlayers.Contains(Player)) 
-                    { 
-                        InvalidPlayers.Add(Player); 
-                        continue; 
+                foreach (var Player in PlayerList)
+                {
+                    if (!APPlayers.Contains(Player))
+                    {
+                        InvalidPlayers.Add(Player);
+                        continue;
                     }
                     var WasAdded = CurrentAssociations.Add(Player);
                     var UpdateList = WasAdded ? AddedPlayers : AlreadyAssigned;
                 }
 
-                List<string> MessageParts = 
+                List<string> MessageParts =
                     [
                     ..PlayerList.CreateResultList($"The following players were associated to {user!.Username}"),
                     ..AlreadyAssigned.CreateResultList($"The following players were already assigned to {user!.Username}"),

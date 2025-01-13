@@ -12,9 +12,8 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             if (message.Author.IsBot) return;
 
             // Check if the message was sent in a guild text channel
-            if (message.Channel is not SocketTextChannel textChannel) { return; }
+            if (message.Channel is not ISocketMessageChannel textChannel) { return; }
 
-            var guildId = textChannel.Guild.Id;
             var channelId = textChannel.Id;
 
             if (discordBot.ActiveSessions.TryGetValue(channelId, out Sessions.ActiveBotSession? Session))

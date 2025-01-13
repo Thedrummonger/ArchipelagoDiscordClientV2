@@ -23,7 +23,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
-                if(!command.Validate(discordBot, out ActiveBotSession? session, out CommandData.CommandDataModel commandData, out string Result))
+                if (!command.Validate(discordBot, out ActiveBotSession? session, out CommandData.CommandDataModel commandData, out string Result))
                 {
                     await command.RespondAsync(Result, ephemeral: true);
                     return;
@@ -47,7 +47,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 else
                 {
                     var SlotArgsList = SlotArgs.TrimSplit(",");
-                    foreach (var arg in SlotArgsList) 
+                    foreach (var arg in SlotArgsList)
                     {
                         var playerInfo = AllOtherPlayer.FirstOrDefault(x => x.Name == arg);
                         if (playerInfo is null) InvalidSlotNames.Add(arg);
@@ -65,8 +65,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         slot.Name,
                         ItemsHandlingFlags.AllItems,
                         Constants.APVersion,
-                        ["TextOnly"], 
-                        null, 
+                        ["TextOnly"],
+                        null,
                         session.ConnectionInfo.Password);
                     if (ConnectionResult is LoginSuccessful)
                     {
@@ -80,7 +80,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     }
                 }
 
-                List<string> MessageParts = 
+                List<string> MessageParts =
                     [
                     ..CreatedSessions.CreateResultList($"The following sessions were created"),
                     ..FailedLogins.CreateResultList($"Failed to login to the following sessions"),
@@ -109,8 +109,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
                 HashSet<string> ActiveAuxSessions = [.. session!.SupportSessions.Keys];
-                HashSet<string> SessionToRemove = 
-                    String.IsNullOrWhiteSpace(SlotArgs) ? 
+                HashSet<string> SessionToRemove =
+                    String.IsNullOrWhiteSpace(SlotArgs) ?
                     [.. session!.SupportSessions.Keys] :
                     [.. SlotArgs.TrimSplit(",")];
 
@@ -122,7 +122,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 foreach (var Session in SessionToRemove)
                 {
                     var Valid = session!.SupportSessions.TryGetValue(Session, out ArchipelagoSession? APSession);
-                    if (Valid) 
+                    if (Valid)
                     {
                         session!.SupportSessions.Remove(Session);
                         await APSession!.Socket.DisconnectAsync();

@@ -1,12 +1,5 @@
-﻿using Archipelago.MultiClient.Net.MessageLog.Parts;
-using ArchipelagoDiscordClientLegacy.Data;
-using Discord;
+﻿using ArchipelagoDiscordClientLegacy.Data;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
@@ -14,24 +7,26 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
     public static class CommandHelpers
     {
         public static bool Validate(
-            this SocketSlashCommand command, 
-            DiscordBot discordBot, 
-            bool CheckConnected, 
+            this SocketSlashCommand command,
+            DiscordBot discordBot,
+            bool CheckConnected,
             out CommandData.CommandDataModel commandData,
             out string Error
             )
         {
             Error = "Unknown Error";
             commandData = command.GetCommandData();
-            if (commandData.socketTextChannel is null)
+            if (commandData.textChannel is null)
             {
+                Console.WriteLine($"Tried to connect with channel type {command.Channel.GetType().ToString()}");
                 Error = "Only Text Channels are Supported";
+                return false;
             }
 
             if (discordBot.ActiveSessions.ContainsKey(commandData.channelId) != CheckConnected)
             {
-                Error = CheckConnected ? 
-                    "This channel is not connected to an Archipelago session." : 
+                Error = CheckConnected ?
+                    "This channel is not connected to an Archipelago session." :
                     "This channel is already connected to an Archipelago session.";
                 return false;
             }

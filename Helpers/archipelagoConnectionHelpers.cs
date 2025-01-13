@@ -1,25 +1,18 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
-using Archipelago.MultiClient.Net.MessageLog.Parts;
-using ArchipelagoDiscordClientLegacy.Commands;
 using ArchipelagoDiscordClientLegacy.Data;
-using Discord.WebSocket;
-using System.Linq;
-using System.Net.NetworkInformation;
-using System.Text;
-using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
 {
     public static class archipelagoConnectionHelpers
     {
-        public static async Task CleanAndCloseChannel(this DiscordBotData.DiscordBot bot, ulong channelId)
+        public static async Task CleanAndCloseChannel(this DiscordBot bot, ulong channelId)
         {
             if (!bot.ActiveSessions.TryGetValue(channelId, out var session)) { return; }
             bot.ActiveSessions.Remove(channelId);
             bot.MessageQueueHandler.MessageQueue.Remove(channelId);
-            Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Id} from server {session.archipelagoSession.ConnectionInfo.Slot}");
+            Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.archipelagoSession.Socket.Uri}");
             if (session.archipelagoSession.Socket.Connected) { await session.archipelagoSession.Socket.DisconnectAsync(); }
         }
         /// <summary>

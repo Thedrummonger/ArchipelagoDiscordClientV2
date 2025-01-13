@@ -44,6 +44,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         .AddChoice("ignore_hints", (int)SettingEnum.IgnoreHints)
                         .AddChoice("ignore_chats", (int)SettingEnum.IgnoreChats)
                         .AddChoice("ignore_connected_player_chats", (int)SettingEnum.IgnoreConnectedPlayerChats)
+                        .AddChoice("ignore_unrelated", (int)SettingEnum.IgnoreUnrelated)
                         .WithType(ApplicationCommandOptionType.Integer)
                     )
                     .AddOption("value", ApplicationCommandOptionType.Boolean, "Value", false).Build();
@@ -74,6 +75,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         break;
                     case (int)SettingEnum.IgnoreHints:
                         ActiveSession!.settings.IgnoreHints = value ?? !ActiveSession.settings.IgnoreHints;
+                        break;
+                    case (int)SettingEnum.IgnoreUnrelated:
+                        ActiveSession!.settings.IgnoreUnrelated = value ?? !ActiveSession.settings.IgnoreUnrelated;
                         break;
                     default:
                         await command.RespondAsync($"Invalid option", ephemeral: true);

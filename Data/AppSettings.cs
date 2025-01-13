@@ -15,6 +15,7 @@
         public bool IgnoreHints { get; set; } = false;
         public bool IgnoreChats { get; set; } = false;
         public bool IgnoreConnectedPlayerChats { get; set; } = true;
+        public bool IgnoreUnrelated { get; set; } = true;
         public Dictionary<ulong, HashSet<string>> SlotAssociations { get; set; } = [];
     }
 
@@ -24,6 +25,7 @@
         IgnoreItemSend = 2,
         IgnoreChats = 3,
         IgnoreConnectedPlayerChats = 4,
-        IgnoreHints = 5
+        IgnoreHints = 5,
+        IgnoreUnrelated = 6
     }
 }

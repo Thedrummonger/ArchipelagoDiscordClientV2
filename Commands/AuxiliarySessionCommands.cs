@@ -42,7 +42,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 if (String.IsNullOrWhiteSpace(SlotArgs))
                 {
-                    ValidSlots = AllOtherPlayer.Where(x => !session.SupportSessions.ContainsKey(x.Name)).ToHashSet();
+                    ValidSlots = AllOtherPlayer.Where(x => !session.AuxiliarySessions.ContainsKey(x.Name)).ToHashSet();
                 }
                 else
                 {
@@ -51,7 +51,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     {
                         var playerInfo = AllOtherPlayer.FirstOrDefault(x => x.Name == arg);
                         if (playerInfo is null) InvalidSlotNames.Add(arg);
-                        else if (session.SupportSessions.ContainsKey(arg)) AlreadyConnectedSlots.Add(arg);
+                        else if (session.AuxiliarySessions.ContainsKey(arg)) AlreadyConnectedSlots.Add(arg);
                         else ValidSlots.Add(playerInfo);
                     }
                 }
@@ -71,7 +71,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     if (ConnectionResult is LoginSuccessful)
                     {
                         CreatedSessions.Add(slot.Name);
-                        session.SupportSessions.Add(slot.Name, supportSession);
+                        session.AuxiliarySessions.Add(slot.Name, supportSession);
                         session.CreateArchipelagoHandlers(discordBot, supportSession);
                     }
                     else
@@ -108,10 +108,10 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
-                HashSet<string> ActiveAuxSessions = [.. session!.SupportSessions.Keys];
+                HashSet<string> ActiveAuxSessions = [.. session!.AuxiliarySessions.Keys];
                 HashSet<string> SessionToRemove =
                     String.IsNullOrWhiteSpace(SlotArgs) ?
-                    [.. session!.SupportSessions.Keys] :
+                    [.. session!.AuxiliarySessions.Keys] :
                     [.. SlotArgs.TrimSplit(",")];
 
                 await command.RespondAsync($"Attempting to disconnect auxiliary connections for\n{string.Join(", ", SessionToRemove.Select(x => x))}.");
@@ -121,10 +121,10 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 HashSet<string> NotConnectedSlots = [];
                 foreach (var Session in SessionToRemove)
                 {
-                    var Valid = session!.SupportSessions.TryGetValue(Session, out ArchipelagoSession? APSession);
+                    var Valid = session!.AuxiliarySessions.TryGetValue(Session, out ArchipelagoSession? APSession);
                     if (Valid)
                     {
-                        session!.SupportSessions.Remove(Session);
+                        session!.AuxiliarySessions.Remove(Session);
                         await APSession!.Socket.DisconnectAsync();
                         RemovedSessions.Add(Session);
                     }
@@ -172,7 +172,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 {
                     TargetSession = session.archipelagoSession;
                 }
-                else if (session!.SupportSessions.TryGetValue(SlotArgs, out ArchipelagoSession? AuxiliarySession))
+                else if (session!.AuxiliarySessions.TryGetValue(SlotArgs, out ArchipelagoSession? AuxiliarySession))
                 {
                     TargetSession = AuxiliarySession;
                 }

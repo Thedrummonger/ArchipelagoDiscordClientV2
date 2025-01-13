@@ -1,6 +1,7 @@
 ﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
 using System.Text;
 using System.Text.RegularExpressions;
+using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
@@ -62,7 +63,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             //if (!hintLogMessage.IsRelatedToActivePlayer) return false;
 
             //A list of players that would print this hint message when it is received
-            HashSet<string> ListeningPlayers = [session.archipelagoSession.Players.ActivePlayer.Name, .. session.SupportSessions.Keys];
+            HashSet<string> ListeningPlayers = [session.archipelagoSession.Players.ActivePlayer.Name, .. session.AuxiliarySessions.Keys];
 
             //The slot receiving the message should always take priority
             if (hintLogMessage.IsReceiverTheActivePlayer) return true;
@@ -93,11 +94,11 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                     return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.GetTags().Select(x => x.ToLower())).Any();
 
                 case HintItemSendLogMessage message:
-                    return session.settings.IgnoreItemSend || !message.ShouldRelayHintMessage(session);
+                    return session.settings.IgnoreItemSend || !message.ShouldRelayHintMessage(session) || ShouldIgnoreUnrelated(logMessage, session);
 
                 case ItemCheatLogMessage:
                 case ItemSendLogMessage:
-                    return session.settings.IgnoreItemSend;
+                    return session.settings.IgnoreItemSend || ShouldIgnoreUnrelated(logMessage, session);
 
                 case AdminCommandResultLogMessage:
                 case GoalLogMessage:
@@ -110,6 +111,25 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 default:
                     return false;
             };
+        }
+
+        public static bool ShouldIgnoreUnrelated(LogMessage logMessage, ActiveBotSession session)
+        {
+            if (!session.settings.IgnoreUnrelated) { return false; }
+            switch (logMessage)
+            {
+                case PlayerSpecificLogMessage playerSpecificLogMessage:
+                    if (playerSpecificLogMessage.Player.Name == session.archipelagoSession.Players.ActivePlayer.Name) { return false; }
+                    if (playerSpecificLogMessage.Player.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
+                    break;
+                case ItemSendLogMessage ItemSendMessage:
+                    if (ItemSendMessage.Sender.Name == session.archipelagoSession.Players.ActivePlayer.Name) { return false; }
+                    if (ItemSendMessage.Receiver.Name == session.archipelagoSession.Players.ActivePlayer.Name) { return false; }
+                    if (ItemSendMessage.Sender.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
+                    if (ItemSendMessage.Receiver.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
+                    break;
+            }
+            return true;
         }
 
         //For some reason, LeaveLogMessage does not contain tags. For now we can extract the tags manually from the message.

@@ -86,7 +86,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 case ChatLogMessage message:
                     //If it's a discord message from the active player, assume it came from the same chat and doesn't need to be posted
                     if (message.IsActivePlayer && message.ToString().Contains(": [Discord:")) { return true; }
-                    return session.settings.IgnoreChats || (message.IsActivePlayer && session.settings.IgnoreConnectedPlayerChats);
+                    return session.settings.IgnoreChats || message.ShouldIgnoreConnectedPlayerChat(session);
 
                 case JoinLogMessage message:
                     return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.Tags.Select(x => x.ToLower())).Any();
@@ -94,11 +94,11 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                     return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.GetTags().Select(x => x.ToLower())).Any();
 
                 case HintItemSendLogMessage message:
-                    return session.settings.IgnoreItemSend || !message.ShouldRelayHintMessage(session) || ShouldIgnoreUnrelated(logMessage, session);
+                    return session.settings.IgnoreHints || !message.ShouldRelayHintMessage(session) || logMessage.ShouldIgnoreUnrelated(session);
 
                 case ItemCheatLogMessage:
                 case ItemSendLogMessage:
-                    return session.settings.IgnoreItemSend || ShouldIgnoreUnrelated(logMessage, session);
+                    return session.settings.IgnoreItemSend || logMessage.ShouldIgnoreUnrelated(session);
 
                 case AdminCommandResultLogMessage:
                 case GoalLogMessage:
@@ -113,7 +113,15 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             };
         }
 
-        public static bool ShouldIgnoreUnrelated(LogMessage logMessage, ActiveBotSession session)
+        public static bool ShouldIgnoreConnectedPlayerChat(this ChatLogMessage logMessage, ActiveBotSession session)
+        {
+            if (!session.settings.IgnoreConnectedPlayerChats) { return false; }
+            if (logMessage.Player.Name == session.archipelagoSession.Players.ActivePlayer.Name) return true;
+            if (logMessage.Player.Name.In([.. session.AuxiliarySessions.Keys])) return true;
+            return false;
+        }
+
+        public static bool ShouldIgnoreUnrelated(this LogMessage logMessage, ActiveBotSession session)
         {
             if (!session.settings.IgnoreUnrelated) { return false; }
             switch (logMessage)

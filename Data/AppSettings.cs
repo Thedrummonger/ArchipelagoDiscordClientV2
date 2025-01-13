@@ -19,13 +19,28 @@
         public Dictionary<ulong, HashSet<string>> SlotAssociations { get; set; } = [];
     }
 
-    public enum SettingEnum
+    public class ToggleSetting
     {
-        IgnoreLeaveJoin = 1,
-        IgnoreItemSend = 2,
-        IgnoreChats = 3,
-        IgnoreConnectedPlayerChats = 4,
-        IgnoreHints = 5,
-        IgnoreUnrelated = 6
+        public string Key;
+        public string Description;
+        public Action<SessionSetting, bool?> Execute;
+        ToggleSetting(string _Key, string _Desc, Action<SessionSetting, bool?> _Execute) 
+        {
+            Key = _Key;
+            Description = _Desc;
+            Execute = _Execute;
+        }
+
+        public static readonly ToggleSetting[] ToggleSettings =
+        [
+            new("IgnoreLeaveJoin", "Ignores client join and client leave messages", (s,v) => s.IgnoreLeaveJoin = v ?? !s.IgnoreLeaveJoin),
+            new("IgnoreItemSend", "Ignores messages regarding locations being check and items being received.", (s,v) => s.IgnoreItemSend = v ?? !s.IgnoreItemSend) ,
+            new("IgnoreHints", "Ignores messages regarding hints.", (s,v) => s.IgnoreHints = v ?? !s.IgnoreHints) ,
+            new("IgnoreChats", "Ignores player chat messages", (s, v) => s.IgnoreChats = v ?? !s.IgnoreChats) ,
+            new("IgnoreConnectedPlayerChats", "Ignores chat messages if the connected player " +
+                "or any of the Auxiliary Connections are the sender", (s,v) => s.IgnoreConnectedPlayerChats = v ?? !s.IgnoreConnectedPlayerChats) ,
+            new("IgnoreUnrelated", "Ignores Item and Hint related messages if the connected player " +
+                "or any of the Auxiliary Connections are not the sender or receiver", (s,v) => s.IgnoreUnrelated = v ?? !s.IgnoreUnrelated) ,
+        ];
     }
 }

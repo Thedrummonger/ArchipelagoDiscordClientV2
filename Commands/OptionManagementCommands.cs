@@ -32,22 +32,28 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         {
             public override string Name => "toggle_bot_settings";
 
-            public override SlashCommandProperties Properties => new SlashCommandBuilder()
-                .WithName(Name)
-                    .WithDescription("Toggle the selected bot setting")
-                    .AddOption(new SlashCommandOptionBuilder()
-                        .WithName("setting")
-                        .WithDescription("Select a setting to toggle")
-                        .WithRequired(true)
-                        .AddChoice("ignore_leave_join", (int)SettingEnum.IgnoreLeaveJoin)
-                        .AddChoice("ignore_item_send", (int)SettingEnum.IgnoreItemSend)
-                        .AddChoice("ignore_hints", (int)SettingEnum.IgnoreHints)
-                        .AddChoice("ignore_chats", (int)SettingEnum.IgnoreChats)
-                        .AddChoice("ignore_connected_player_chats", (int)SettingEnum.IgnoreConnectedPlayerChats)
-                        .AddChoice("ignore_unrelated", (int)SettingEnum.IgnoreUnrelated)
-                        .WithType(ApplicationCommandOptionType.Integer)
-                    )
-                    .AddOption("value", ApplicationCommandOptionType.Boolean, "Value", false).Build();
+            public override SlashCommandProperties Properties
+            {
+                get
+                {
+                    var optionBuilder = new SlashCommandOptionBuilder()
+                            .WithName("setting")
+                            .WithDescription("Select a setting to toggle")
+                            .WithRequired(true)
+                            .WithType(ApplicationCommandOptionType.Integer);
+                    for (int index = 0; index < ToggleSetting.ToggleSettings.Length; index++)
+                    {
+                        var value = ToggleSetting.ToggleSettings[index];
+                        optionBuilder.AddChoice(value.Key, index);
+                    }
+
+                    return new SlashCommandBuilder()
+                        .WithName(Name)
+                        .WithDescription("Toggle the selected bot setting")
+                        .AddOption(optionBuilder)
+                        .AddOption("value", ApplicationCommandOptionType.Boolean, "Value", false).Build();
+                }
+            }
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -56,33 +62,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
-                var setting = (int)(Data.GetArg("setting")?.GetValue<long>() ?? 0);
+                var setting = (Data.GetArg("setting")?.GetValue<long>());
                 var value = Data.GetArg("value")?.GetValue<bool?>();
 
-                switch (setting)
+                if (setting is null || setting < 0 || setting >= ToggleSetting.ToggleSettings.Length)
                 {
-                    case (int)SettingEnum.IgnoreLeaveJoin:
-                        ActiveSession!.settings.IgnoreLeaveJoin = value ?? !ActiveSession.settings.IgnoreLeaveJoin;
-                        break;
-                    case (int)SettingEnum.IgnoreItemSend:
-                        ActiveSession!.settings.IgnoreItemSend = value ?? !ActiveSession.settings.IgnoreItemSend;
-                        break;
-                    case (int)SettingEnum.IgnoreChats:
-                        ActiveSession!.settings.IgnoreChats = value ?? !ActiveSession.settings.IgnoreChats;
-                        break;
-                    case (int)SettingEnum.IgnoreConnectedPlayerChats:
-                        ActiveSession!.settings.IgnoreConnectedPlayerChats = value ?? !ActiveSession.settings.IgnoreConnectedPlayerChats;
-                        break;
-                    case (int)SettingEnum.IgnoreHints:
-                        ActiveSession!.settings.IgnoreHints = value ?? !ActiveSession.settings.IgnoreHints;
-                        break;
-                    case (int)SettingEnum.IgnoreUnrelated:
-                        ActiveSession!.settings.IgnoreUnrelated = value ?? !ActiveSession.settings.IgnoreUnrelated;
-                        break;
-                    default:
-                        await command.RespondAsync($"Invalid option", ephemeral: true);
-                        return;
+                    await command.RespondAsync("Invalid Option", ephemeral: true);
+                    return;
                 }
+                ToggleSetting.ToggleSettings[(int)setting].Execute(ActiveSession!.settings, value);
+
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
                 discordBot.UpdateConnectionCache();
                 await PrintSettings(command, ActiveSession);
@@ -128,6 +117,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public async Task PrintSettings(SocketSlashCommand command, Sessions.ActiveBotSession Session)
             {
                 await command.RespondAsync($"```json\n{Session.settings.ToFormattedJson()}\n```");
+            }
+        }
+
+        public class SettingDetailsCommand : ICommand
+        {
+            public string Name => "print_setting_details";
+
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
+                .WithName(Name)
+                .WithDescription("Prints a description of each setting").Build();
+
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            {
+                List<string> Print = ToggleSetting.ToggleSettings.Select(x => $"{x.Key}: {x.Description}").ToList();
+                Print.Add("edit_ignored_tags: Ignore tags will ignore a client message if the message tags contain an ignore tag");
+                await command.RespondAsync(string.Join("\n", Print));
             }
         }
     }

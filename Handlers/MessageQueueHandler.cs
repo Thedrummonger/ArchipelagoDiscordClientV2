@@ -1,5 +1,4 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
-using Discord;
 using Discord.WebSocket;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers

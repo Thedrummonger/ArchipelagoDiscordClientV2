@@ -1,6 +1,4 @@
-﻿using ArchipelagoDiscordClientLegacy.Data;
-
-namespace ArchipelagoDiscordClientLegacy.Helpers
+﻿namespace ArchipelagoDiscordClientLegacy.Helpers
 {
     public static class ColorHelpers
     {

@@ -23,7 +23,7 @@
         public string Key;
         public string Description;
         public Action<SessionSetting, bool?> Execute;
-        ToggleSetting(string _Key, string _Desc, Action<SessionSetting, bool?> _Execute) 
+        ToggleSetting(string _Key, string _Desc, Action<SessionSetting, bool?> _Execute)
         {
             Key = _Key;
             Description = _Desc;

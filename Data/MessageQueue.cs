@@ -1,7 +1,4 @@
-﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
-using Discord.WebSocket;
-using System.Net.NetworkInformation;
-using TDMUtils;
+﻿using Discord.WebSocket;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Data

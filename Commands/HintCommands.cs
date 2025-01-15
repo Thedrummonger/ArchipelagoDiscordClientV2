@@ -4,7 +4,6 @@ using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
 using TDMUtils;
-using static ArchipelagoDiscordClientLegacy.Data.Constants;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 
@@ -60,25 +59,25 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     var ReceivingPlayerName = ReceivingPlayer.Name;
 
                     var FoundString = hint.Found ?
-                        ColorHelpers.SetColor("Found", Colors.Hints.found) :
-                        ColorHelpers.SetColor("Not Found", Colors.Hints.Unfound);
+                        ColorHelpers.SetColor("Found", ColorHelpers.Hints.found) :
+                        ColorHelpers.SetColor("Not Found", ColorHelpers.Hints.Unfound);
 
-                    if (hint.ItemFlags.HasFlag(ItemFlags.Advancement)) { Item = Item.SetColor(Colors.Items.Progression); }
-                    else if (hint.ItemFlags.HasFlag(ItemFlags.NeverExclude)) { Item = Item.SetColor(Colors.Items.Important); }
-                    else if (hint.ItemFlags.HasFlag(ItemFlags.Trap)) { Item = Item.SetColor(Colors.Items.Traps); }
-                    else { Item = Item.SetColor(Colors.Items.Normal); }
+                    if (hint.ItemFlags.HasFlag(ItemFlags.Advancement)) { Item = Item.SetColor(ColorHelpers.Items.Progression); }
+                    else if (hint.ItemFlags.HasFlag(ItemFlags.NeverExclude)) { Item = Item.SetColor(ColorHelpers.Items.Important); }
+                    else if (hint.ItemFlags.HasFlag(ItemFlags.Trap)) { Item = Item.SetColor(ColorHelpers.Items.Traps); }
+                    else { Item = Item.SetColor(ColorHelpers.Items.Normal); }
 
-                    Location = Location.SetColor(Colors.Location);
+                    Location = Location.SetColor(ColorHelpers.Location);
                     var EntranceLine = Entrance.IsNullOrWhiteSpace() ? "" :
-                        $" at {Entrance.SetColor(Colors.Entrance)}";
+                        $" at {Entrance.SetColor(ColorHelpers.Entrance)}";
 
                     FindingPlayerName = FindingPlayer.Slot == TargetPlayer.Slot ?
-                        FindingPlayerName.SetColor(Colors.Players.Local) :
-                        FindingPlayerName.SetColor(Colors.Players.Other);
+                        FindingPlayerName.SetColor(ColorHelpers.Players.Local) :
+                        FindingPlayerName.SetColor(ColorHelpers.Players.Other);
 
                     ReceivingPlayerName = ReceivingPlayer.Slot == TargetPlayer.Slot ?
-                        ReceivingPlayerName.SetColor(Colors.Players.Local) :
-                        ReceivingPlayerName.SetColor(Colors.Players.Other);
+                        ReceivingPlayerName.SetColor(ColorHelpers.Players.Local) :
+                        ReceivingPlayerName.SetColor(ColorHelpers.Players.Other);
                     string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} {EntranceLine}({FoundString})";
 
                     Messages.Add(new QueuedMessage(HintLine));

@@ -18,6 +18,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .WithDescription("Detaches discord user from archipelago player")
                     .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
                     .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -30,7 +31,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var user = Data.GetArg("user")?.GetValue<SocketUser>();
                 var players = Data.GetArg("players")?.GetValue<string?>();
 
-                if (!ActiveSession!.settings.SlotAssociations.ContainsKey(user!.Id!))
+                if (!ActiveSession!.Settings.SlotAssociations.ContainsKey(user!.Id!))
                 {
                     await command.RespondAsync($"There are no slot associations for {user!.Username}.", ephemeral: true);
                     return;
@@ -42,7 +43,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 HashSet<string> invalid = [];
                 foreach (var player in PlayerList)
                 {
-                    bool WasRemoved = ActiveSession.settings.SlotAssociations[user!.Id].Remove(player);
+                    bool WasRemoved = ActiveSession.Settings.SlotAssociations[user!.Id].Remove(player);
                     HashSet<string> trackingList = WasRemoved ? valid : invalid;
                     trackingList.Add(player);
                 }
@@ -52,7 +53,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     ..valid.CreateResultList($"The following players were removed from {user!.Username}"),
                     ..invalid.CreateResultList($"The following players were not associated with {user!.Username}")
                     ];
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
                 discordBot.UpdateConnectionCache();
                 await command.RespondAsync(String.Join("\n", MessageParts));
             }
@@ -67,6 +68,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .WithDescription("Assign discord user to archipelago player")
                     .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
                     .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -79,11 +81,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var user = Data.GetArg("user")?.GetValue<SocketUser>();
                 var players = Data.GetArg("players")?.GetValue<string?>();
 
-                var APPlayers = ActiveSession!.archipelagoSession.Players.AllPlayers.Select(p => p.Name);
+                var APPlayers = ActiveSession!.ArchipelagoSession.Players.AllPlayers.Select(p => p.Name);
 
-                ActiveSession.settings.SlotAssociations!.SetIfEmpty(user!.Id, []);
+                ActiveSession.Settings.SlotAssociations!.SetIfEmpty(user!.Id, []);
 
-                var CurrentAssociations = ActiveSession.settings.SlotAssociations[user!.Id];
+                var CurrentAssociations = ActiveSession.Settings.SlotAssociations[user!.Id];
 
                 var PlayerList = players!.TrimSplit(",").ToHashSet(); //Players passed by the command
 
@@ -108,7 +110,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     ..InvalidPlayers.CreateResultList($"The following players were not valid players in archipelago"),
                     ];
 
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
                 discordBot.UpdateConnectionCache();
 
                 await command.RespondAsync(String.Join("\n", MessageParts));

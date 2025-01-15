@@ -1,64 +1,70 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
+using Discord;
 using Discord.WebSocket;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
-    public class MessageQueueHandler(DiscordBotData.DiscordBot discordBot)
+    public class ActiveSessionMessageQueue(DiscordBotData.DiscordBot discordBot, Sessions.ActiveBotSession ChannelSession)
     {
-        public Dictionary<ulong, Queue<MessageQueueData.QueuedMessage>> MessageQueue = [];
-        public async Task ProcessMessageQueueAsync()
-        {
-            //Discord only allows 50 api calls per second, or 1 every 20 milliseconds
-            //With how fast archipelago sends data sometimes, it's really easy to hit this
-            //To get around this, anytime I send a message to a discord channel I send it through this queue instead.
-            //The current delay of 500 ms per action is way overkill and can probably be brought down eventually.
-            while (true)
-            {
-                foreach (var queue in MessageQueue.Values)
-                {
-                    if (queue.Count > 0)
-                    {
-                        var FirstItem = queue.Peek();
-                        if (FirstItem.Channel is not ISocketMessageChannel channel)
-                            throw new Exception("Channel from Queue was null, this should not happen!");
-
-                        List<string> sendBatch = [];
-                        HashSet<ulong> ToPing = [];
-
-                        while (queue.Count > 0)
-                        {
-                            var PeekedItem = queue.Peek();
-                            List<string> SimulatedMessageBatch = [.. sendBatch, .. new string[] { PeekedItem.Message }];
-                            HashSet<ulong> SimulatedToPing = [.. ToPing, .. PeekedItem.UsersToPing];
-                            string SimulatedFinalMessage = GetFinalMessage(SimulatedMessageBatch, SimulatedToPing);
-                            if (SimulatedFinalMessage.Length > DiscordMessageLimit) break;
-
-                            var QueuedItem = queue.Dequeue();
-                            sendBatch.Add(QueuedItem.Message);
-                            foreach (var user in PeekedItem.UsersToPing)
-                                ToPing.Add(user);
-                        }
-
-                        var formattedMessage = GetFinalMessage(sendBatch, ToPing);
-                        _ = channel.SendMessageAsync(formattedMessage);
-                        await Task.Delay(discordBot.appSettings.DiscordRateLimitDelay);
-                    }
-                }
-                //Wait before processing more messages to avoid rate limit
-                //TODO: This await could probably be removed?
-                await Task.Delay(discordBot.appSettings.DiscordRateLimitDelay);
-            }
-        }
-
         private static readonly Tuple<string, string> Formatter = new("```ansi\n", "\n```");
         private static readonly string LineSeparator = "\n\n";
         private static readonly int DiscordMessageLimit = 2000;
-
-        private static string GetFinalMessage(List<string> sendBatch, HashSet<ulong> ToPing)
+        private static readonly int DiscordChannelMessageRateLimit = 500; //Only 2 messages a second are allowed per channel
+        public Queue<MessageQueueData.QueuedMessage> Queue = [];
+        public async Task ProcessChannelMessages()
         {
-            return $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}{CreatePingString(ToPing)}";
+            while (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
+            {
+                if (Queue.Count == 0)
+                {
+                    await Task.Delay(100);
+                    continue;
+                }
+                var messageBatch = new List<string>();
+                var pingBatch = new HashSet<ulong>();
+
+                while (Queue.Count > 0)
+                {
+                    var nextItem = Queue.Peek();
+                    var simulatedMessage = GetFinalMessage([.. messageBatch, nextItem.Message], [.. pingBatch, .. nextItem.UsersToPing]);
+                    if (simulatedMessage.Length > DiscordMessageLimit)
+                        break;
+
+                    Queue.Dequeue();
+                    messageBatch.Add(nextItem.Message);
+                    foreach (var userId in nextItem.UsersToPing)
+                        pingBatch.Add(userId);
+                }
+
+                var finalMessage = GetFinalMessage(messageBatch, pingBatch);
+                discordBot.QueueAPIAction(ChannelSession.DiscordChannel, finalMessage);
+
+                await Task.Delay(DiscordChannelMessageRateLimit);
+            }
         }
-        private static string CreatePing(ulong user) => $"<@{user}>";
-        private static string CreatePingString(HashSet<ulong> ToPing) => string.Join("", ToPing.Select(CreatePing));
+
+        private static string GetFinalMessage(List<string> sendBatch, HashSet<ulong> toPing) =>
+            $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}{CreatePingString(toPing)}";
+
+        private static string CreatePingString(HashSet<ulong> toPing) =>
+            string.Join("", toPing.Select(user => $"<@{user}>"));
+    }
+    public class BotAPIRequestQueue
+    {
+        private static readonly int DiscordAPIRequestRateLimit = 20; //Only 50 api calls per second are allowed globally for the bot
+        public Queue<(ISocketMessageChannel channel, string message)> Queue = [];
+        public async Task ProcessAPICalls()
+        {
+            while (true)
+            {
+                if (Queue.Count > 0)
+                {
+                    var (channel, message) = Queue.Dequeue();
+                    _ = channel.SendMessageAsync(message);
+                    Console.WriteLine(message);
+                }
+                await Task.Delay(DiscordAPIRequestRateLimit);
+            }
+        }
     }
 }

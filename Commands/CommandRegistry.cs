@@ -9,13 +9,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
     public class CommandRegistry
     {
         private DiscordBot _discordBot;
+        private Dictionary<string, ICommand> Commands = [];
         public CommandRegistry(DiscordBot bot)
         {
             _discordBot = bot;
             var CommandCreation = new CommandCreation();
             CommandCreation.CreateCommands(this);
         }
-        public Dictionary<string, ICommand> Commands = new Dictionary<string, ICommand>();
 
         public void AddCommand(ICommand command)
         {
@@ -32,57 +32,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         }
     }
 
-    public class SlashCommand
-    {
-        public required string Name { get; set; }
-        private SlashCommandProperties? Properties { get; set; }
-
-        private Func<SocketSlashCommand, DiscordBot, Task> Execute = UnimplementedCommand;
-        public SlashCommandProperties? GetProperties() => Properties;
-        public Task ExecuteCommand(SocketSlashCommand c, DiscordBot d) => Execute(c, d);
-        public SlashCommand SetProperties(SlashCommandBuilder _Properties)
-        {
-            if (!_Properties.Name.IsNullOrWhiteSpace())
-            {
-                throw new Exception($"Name is already set in the AddCommand function, do not add a name in the builder");
-            }
-            _Properties.WithName(Name);
-            Properties = _Properties.Build();
-            return this;
-        }
-        public SlashCommand SetExecutionFunc(Func<SocketSlashCommand, DiscordBot, Task> func)
-        {
-            this.Execute = func;
-            return this;
-        }
-
-        private static async Task UnimplementedCommand(SocketSlashCommand command, DiscordBot discordBot)
-        {
-            await command.RespondAsync("This command is not yet implemented.");
-        }
-    }
-
     class CommandCreation
     {
         public void CreateCommands(CommandRegistry commandRegistry)
         {
-            commandRegistry.AddCommand(new ConnectionCommands.ConnectCommand());
-            commandRegistry.AddCommand(new ConnectionCommands.ReConnectCommand());
-            commandRegistry.AddCommand(new ConnectionCommands.DisconnectCommand());
-            commandRegistry.AddCommand(new UserAssignmentCommands.AssignUserCommand());
-            commandRegistry.AddCommand(new UserAssignmentCommands.UnAssignUserCommand());
-            commandRegistry.AddCommand(new HintCommands.ShowHintsCommand());
-            commandRegistry.AddCommand(new ShowSessionCommands.ShowChannelSessionCommand());
-            commandRegistry.AddCommand(new ShowSessionCommands.ShowServerSessionsCommand());
-            commandRegistry.AddCommand(new AppSettingManagementCommands.PrintAppSettingsCommand());
-            commandRegistry.AddCommand(new AppSettingManagementCommands.ToggleAppSettings());
-            commandRegistry.AddCommand(new AppSettingManagementCommands.EditTagIgnoreList());
-            commandRegistry.AddCommand(new AuxiliarySessionCommands.AddAuxiliarySessionsCommand());
-            commandRegistry.AddCommand(new AuxiliarySessionCommands.RemoveAuxiliarySessionsCommand());
-            commandRegistry.AddCommand(new AuxiliarySessionCommands.SendAsAuxiliarySession());
-            if (Debugger.IsAttached)
+            var commandTypes = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(type => typeof(ICommand).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+                .ToList();
+
+            foreach (var commandType in commandTypes)
             {
-                commandRegistry.AddCommand(new DevCommands.DevGoalCommand());
+                if (Activator.CreateInstance(commandType) is ICommand command && (!command.IsDebugCommand || Debugger.IsAttached))
+                {
+                    Console.WriteLine($"Registering Command: {command.Name}");
+                    commandRegistry.AddCommand(command);
+                }
             }
         }
     }

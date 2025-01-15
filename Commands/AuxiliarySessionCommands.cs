@@ -20,6 +20,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .WithName(Name)
                     .WithDescription("Creates auxiliary connections to the given slots to allow interaction with those slots")
                     .AddOption("slots", ApplicationCommandOptionType.String, "Slots to create a auxiliary connection", false).Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
@@ -36,8 +37,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 HashSet<string> AlreadyConnectedSlots = [];
                 HashSet<string> InvalidSlotNames = [];
 
-                HashSet<PlayerInfo> AllOtherPlayer = session!.archipelagoSession.Players.AllPlayers
-                    .Where(x => x.Slot != session.archipelagoSession.Players.ActivePlayer.Slot && x.Name != "Server").ToHashSet();
+                HashSet<PlayerInfo> AllOtherPlayer = session!.ArchipelagoSession.Players.AllPlayers
+                    .Where(x => x.Slot != session.ArchipelagoSession.Players.ActivePlayer.Slot && x.Name != "Server").ToHashSet();
                 HashSet<PlayerInfo> ValidSlots = [];
 
                 if (String.IsNullOrWhiteSpace(SlotArgs))
@@ -59,7 +60,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 await command.RespondAsync($"Attempting to add auxiliary connections for\n{string.Join(", ", ValidSlots.Select(x => x.Name))}.");
                 foreach (var slot in ValidSlots)
                 {
-                    var supportSession = ArchipelagoSessionFactory.CreateSession(session.archipelagoSession.Socket.Uri);
+                    var supportSession = ArchipelagoSessionFactory.CreateSession(session.ArchipelagoSession.Socket.Uri);
                     var ConnectionResult = supportSession.TryConnectAndLogin(
                         slot.Game,
                         slot.Name,
@@ -72,7 +73,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     {
                         CreatedSessions.Add(slot.Name);
                         session.AuxiliarySessions.Add(slot.Name, supportSession);
-                        session.CreateArchipelagoHandlers(discordBot, supportSession);
+                        session.CreateArchipelagoHandlers(supportSession);
                     }
                     else
                     {
@@ -98,6 +99,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .WithName(Name)
                     .WithDescription("Closes and Removes the given Auxiliary connections")
                     .AddOption("slots", ApplicationCommandOptionType.String, "Slots to close Auxiliary connection for", false).Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
@@ -153,6 +155,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .AddOption("slot", ApplicationCommandOptionType.String, "Slot to send as", true)
                 .AddOption("message", ApplicationCommandOptionType.String, "Message to send", true).Build();
 
+            public bool IsDebugCommand => false;
+
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out ActiveBotSession? session, out CommandData.CommandDataModel commandData, out string Result))
@@ -168,9 +172,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
                 ArchipelagoSession TargetSession;
-                if (SlotArgs == session!.archipelagoSession.Players.ActivePlayer.Name)
+                if (SlotArgs == session!.ArchipelagoSession.Players.ActivePlayer.Name)
                 {
-                    TargetSession = session.archipelagoSession;
+                    TargetSession = session.ArchipelagoSession;
                 }
                 else if (session!.AuxiliarySessions.TryGetValue(SlotArgs, out ArchipelagoSession? AuxiliarySession))
                 {

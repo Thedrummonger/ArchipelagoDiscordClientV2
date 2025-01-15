@@ -9,5 +9,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         string Name { get; }
         SlashCommandProperties Properties { get; }
         Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
+        bool IsDebugCommand { get; }
     }
 }

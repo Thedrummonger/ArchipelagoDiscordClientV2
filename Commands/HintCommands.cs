@@ -20,6 +20,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .WithName(Name)
                     .WithDescription("Shows all hint for the current player")
                     .AddOption("player", ApplicationCommandOptionType.String, "Player to get Hints for, defaults to connected player", false).Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -29,11 +30,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                var TargetPlayer = session!.archipelagoSession.Players.ActivePlayer;
+                var TargetPlayer = session!.ArchipelagoSession.Players.ActivePlayer;
                 var PlayerNameArg = Data.GetArg("player")?.Value;
                 if (PlayerNameArg is string PlayerNameString)
                 {
-                    TargetPlayer = session.archipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == PlayerNameString);
+                    TargetPlayer = session.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == PlayerNameString);
                 }
 
                 if (TargetPlayer == null)
@@ -44,15 +45,15 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 Console.WriteLine($"Showing hints for player {TargetPlayer.Name} [{TargetPlayer.Slot}]");
 
-                var hints = session.archipelagoSession.DataStorage.GetHints(TargetPlayer.Slot);
+                var hints = session.ArchipelagoSession.DataStorage.GetHints(TargetPlayer.Slot);
                 Console.WriteLine($"{hints.Length} Found");
                 List<QueuedMessage> Messages = [];
                 foreach (var hint in hints)
                 {
-                    var FindingPlayer = session.archipelagoSession.Players.GetPlayerInfo(hint.FindingPlayer);
-                    var ReceivingPlayer = session.archipelagoSession.Players.GetPlayerInfo(hint.ReceivingPlayer);
-                    var Item = session.archipelagoSession.Items.GetItemName(hint.ItemId, ReceivingPlayer.Game);
-                    var Location = session.archipelagoSession.Locations.GetLocationNameFromId(hint.LocationId, FindingPlayer.Game);
+                    var FindingPlayer = session.ArchipelagoSession.Players.GetPlayerInfo(hint.FindingPlayer);
+                    var ReceivingPlayer = session.ArchipelagoSession.Players.GetPlayerInfo(hint.ReceivingPlayer);
+                    var Item = session.ArchipelagoSession.Items.GetItemName(hint.ItemId, ReceivingPlayer.Game);
+                    var Location = session.ArchipelagoSession.Locations.GetLocationNameFromId(hint.LocationId, FindingPlayer.Game);
                     var Entrance = hint.Entrance;
 
                     var FindingPlayerName = FindingPlayer.Name;
@@ -80,7 +81,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         ReceivingPlayerName.SetColor(Colors.Players.Other);
                     string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} {EntranceLine}({FoundString})";
 
-                    Messages.Add(Data.textChannel!.CreateSimpleQueuedMessage(HintLine));
+                    Messages.Add(new QueuedMessage(HintLine));
                 }
                 if (Messages.Count < 1)
                 {
@@ -92,7 +93,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 foreach (var i in Messages)
                 {
                     Console.WriteLine($"Queueing {i.Message}");
-                    MessageQueueData.QueueMessage(i, discordBot);
+                    session.QueueMessageForChannel(i);
                 }
             }
         }

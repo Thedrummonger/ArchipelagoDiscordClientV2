@@ -48,9 +48,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                var SessionInfo = new Sessions.SessionContructor()
+                var SessionInfo = new Sessions.SessionConstructor()
                 {
-                    archipelagoConnectionInfo = ConnectionData,
+                    ArchipelagoConnectionInfo = ConnectionData,
                     Settings = discordBot.appSettings.AppDefaultSettings
                 };
 
@@ -74,7 +74,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                if (!discordBot.ConnectionCache.TryGetValue(Data.textChannel!.Id, out Sessions.SessionContructor? connectionCache) || connectionCache is null)
+                if (!discordBot.ConnectionCache.TryGetValue(Data.textChannel!.Id, out Sessions.SessionConstructor? connectionCache) || connectionCache is null)
                 {
                     await command.RespondAsync("No previous connection cached for this channel", ephemeral: true);
                     return;
@@ -91,6 +91,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Disconnect this channel from the Archipelago server").Build();
+
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -112,35 +114,36 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public abstract SlashCommandProperties Properties { get; }
             public abstract Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
 
-            internal async Task ConnectToAPServer(SocketSlashCommand command, DiscordBot discordBot, Sessions.SessionContructor sessionConstructor)
+            public bool IsDebugCommand => false;
+
+            internal async Task ConnectToAPServer(SocketSlashCommand command, DiscordBot discordBot, Sessions.SessionConstructor sessionConstructor)
             {
                 var Data = command.GetCommandData();
                 Console.WriteLine($"Connecting " +
                     $"{Data.channelName} to " +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.Name} playing " +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.Game}");
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name} playing " +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Game}");
 
                 await command.RespondAsync($"Connecting {Data.channelName} to " +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.Name} playing " +
-                    $"{sessionConstructor.archipelagoConnectionInfo!.Game}...");
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name} playing " +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Game}...");
 
                 // Create a new session
                 try
                 {
-                    var session = ArchipelagoSessionFactory.CreateSession(sessionConstructor.archipelagoConnectionInfo!.IP, sessionConstructor.archipelagoConnectionInfo!.Port);
-                    Console.WriteLine($"Trying to connect");
+                    var session = ArchipelagoSessionFactory.CreateSession(sessionConstructor.ArchipelagoConnectionInfo!.IP, sessionConstructor.ArchipelagoConnectionInfo!.Port);
 
                     LoginResult result = session.TryConnectAndLogin(
-                        sessionConstructor.archipelagoConnectionInfo!.Game,
-                        sessionConstructor.archipelagoConnectionInfo!.Name,
+                        sessionConstructor.ArchipelagoConnectionInfo!.Game,
+                        sessionConstructor.ArchipelagoConnectionInfo!.Name,
                         ItemsHandlingFlags.AllItems,
                         Constants.APVersion,
                         ["TextOnly"], null,
-                        sessionConstructor.archipelagoConnectionInfo!.Password,
+                        sessionConstructor.ArchipelagoConnectionInfo!.Password,
                         true);
 
                     if (result is LoginFailure failure)
@@ -148,44 +151,40 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         var errors = string.Join("\n", failure.Errors);
                         await command.ModifyOriginalResponseAsync(msg => msg.Content =
                             $"Failed to connect to Archipelago server at " +
-                            $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
-                            $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
-                            $"{sessionConstructor.archipelagoConnectionInfo!.Name}.\n" +
+                            $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
+                            $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
+                            $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
                             $"{errors}");
                         return;
                     }
 
                     Console.WriteLine($"Connected to Archipelago server at " +
-                        $"{sessionConstructor.archipelagoConnectionInfo!.IP}:" +
-                        $"{sessionConstructor.archipelagoConnectionInfo!.Port} as " +
-                        $"{sessionConstructor.archipelagoConnectionInfo!.Name}.");
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.");
 
-                    var NewSession = new Sessions.ActiveBotSession(sessionConstructor.Settings!)
-                    {
-                        DiscordChannel = Data.textChannel!,
-                        archipelagoSession = session,
-                        ConnectionInfo = sessionConstructor.archipelagoConnectionInfo
-                    };
-                    // Store the session
+                    var NewSession = new Sessions.ActiveBotSession(sessionConstructor, discordBot, Data.textChannel!, session);
                     discordBot.ActiveSessions[Data.channelId] = NewSession;
                     discordBot.ConnectionCache[Data.channelId] = sessionConstructor;
-                    NewSession.CreateArchipelagoHandlers(discordBot);
+
+                    NewSession.CreateArchipelagoHandlers();
+                    _ = NewSession.MessageQueue.ProcessChannelMessages();
 
                     File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
 
                     await command.ModifyOriginalResponseAsync(msg => msg.Content =
                         $"Successfully connected channel {Data.channelName} to Archipelago server at " +
-                        $"{sessionConstructor.archipelagoConnectionInfo.IP}:" +
-                        $"{sessionConstructor.archipelagoConnectionInfo.Port} as " +
-                        $"{sessionConstructor.archipelagoConnectionInfo.Name}.");
+                        $"{sessionConstructor.ArchipelagoConnectionInfo.IP}:" +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo.Port} as " +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo.Name}.");
                 }
                 catch (Exception ex)
                 {
                     await command.ModifyOriginalResponseAsync(msg => msg.Content =
                         $"Failed to connect to Archipelago server at " +
-                        $"{sessionConstructor.archipelagoConnectionInfo.IP}:" +
-                        $"{sessionConstructor.archipelagoConnectionInfo.Port} as " +
-                        $"{sessionConstructor.archipelagoConnectionInfo.Name}.\n{ex.Message}");
+                        $"{sessionConstructor.ArchipelagoConnectionInfo.IP}:" +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo.Port} as " +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo.Name}.\n{ex.Message}");
                 }
             }
         }

@@ -11,9 +11,8 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         {
             if (!bot.ActiveSessions.TryGetValue(channelId, out var session)) { return; }
             bot.ActiveSessions.Remove(channelId);
-            bot.MessageQueueHandler.MessageQueue.Remove(channelId);
-            Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.archipelagoSession.Socket.Uri}");
-            if (session.archipelagoSession.Socket.Connected) { await session.archipelagoSession.Socket.DisconnectAsync(); }
+            Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.ArchipelagoSession.Socket.Uri}");
+            if (session.ArchipelagoSession.Socket.Connected) { await session.ArchipelagoSession.Socket.DisconnectAsync(); }
             if (session.AuxiliarySessions.Count > 0)
             {
                 foreach (var auxSession in session.AuxiliarySessions.Values)
@@ -29,7 +28,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// <param name="botSession"></param>
         /// <param name="discordBot"></param>
         /// <param name="AuxiliaryConnection"></param>
-        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, DiscordBot discordBot, ArchipelagoSession AuxiliaryConnection)
+        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, ArchipelagoSession AuxiliaryConnection)
         {
             AuxiliaryConnection.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
 
@@ -37,17 +36,14 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             {
                 if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) return;
-
                 switch (message)
                 {
                     case HintItemSendLogMessage hintItemSendLogMessage:
-                        var MessageString = message.ColorLogMessage();
-                        var queuedMessage = botSession.DiscordChannel.CreateSimpleQueuedMessage(MessageString, message.ToString());
-                        queuedMessage.UsersToPing = message.GetUserPings(botSession);
-                        discordBot.QueueMessage(queuedMessage);
+                        var queuedMessage = new MessageQueueData.QueuedMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession));
+                        botSession.QueueMessageForChannel(queuedMessage);
                         break;
                     case CommandResultLogMessage commandResultLogMessage:
-                        discordBot.QueueMessage(botSession.DiscordChannel, commandResultLogMessage.ToString());
+                        botSession.QueueMessageForChannel(commandResultLogMessage.ToString());
                         break;
                 }
             }
@@ -57,24 +53,22 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// </summary>
         /// <param name="botSession"></param>
         /// <param name="discordBot"></param>
-        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, DiscordBot discordBot)
+        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession)
         {
-            botSession.archipelagoSession.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
-            botSession.archipelagoSession.Socket.SocketClosed += async (reason) =>
+            botSession.ArchipelagoSession.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
+            botSession.ArchipelagoSession.Socket.SocketClosed += async (reason) =>
             {
-                if (!discordBot.ActiveSessions.ContainsKey(botSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
-                await CleanAndCloseChannel(discordBot, botSession.DiscordChannel.Id);
-                discordBot.QueueMessage(botSession.DiscordChannel!, $"Connection closed:\n{reason}");
+                if (!botSession.ParentBot.ActiveSessions.ContainsKey(botSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
+                await CleanAndCloseChannel(botSession.ParentBot, botSession.DiscordChannel.Id);
+                botSession.QueueMessageForChannel($"Connection closed:\n{reason}");
             };
             void MessageLog_OnMessageReceived(LogMessage message)
             {
                 if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
 
-                var MessageString = message.ColorLogMessage();
-                var queuedMessage = botSession.DiscordChannel.CreateSimpleQueuedMessage(MessageString, message.ToString());
-                queuedMessage.UsersToPing = message.GetUserPings(botSession);
-                discordBot.QueueMessage(queuedMessage);
+                var queuedMessage = new MessageQueueData.QueuedMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession));
+                botSession.QueueMessageForChannel(queuedMessage);
             }
         }
     }

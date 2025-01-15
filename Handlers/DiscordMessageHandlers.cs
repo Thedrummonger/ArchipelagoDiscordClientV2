@@ -34,13 +34,13 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             string Message = $"[Discord: {message.Author.Username}] {message.Content}]";
             try
             {
-                await activeBotSession.archipelagoSession.Socket.SendPacketAsync(new SayPacket() { Text = Message });
+                await activeBotSession.ArchipelagoSession.Socket.SendPacketAsync(new SayPacket() { Text = Message });
                 Console.WriteLine($"Message sent to Archipelago from {message.Author.Username} in {message.Channel.Name}: {message.Content}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to send message to Archipelago: {ex.Message}");
-                discordBot.QueueMessage(activeBotSession.DiscordChannel, $"Error: Unable to send message to the Archipelago server.\n{ex.Message}");
+                activeBotSession.QueueMessageForChannel($"Error: Unable to send message to the Archipelago server.\n{ex.Message}");
             }
         }
     }

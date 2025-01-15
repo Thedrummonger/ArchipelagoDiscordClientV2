@@ -27,9 +27,7 @@ namespace ArchipelagoDiscordClient
             if (Config.BotToken.IsNullOrWhiteSpace()) { throw new Exception($"Bot key not valid"); }
             DiscordBot BotClient = new DiscordBot(Config);
 
-            Console.WriteLine($"Message Delay {BotClient.appSettings.DiscordRateLimitDelay}");
-
-            BotClient.ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionContructor>(), true);
+            BotClient.ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionConstructor>(), true);
 
             BotClient.GetClient().Ready += BotClient.commandRegistry.Initialize;
             BotClient.GetClient().SlashCommandExecuted += BotClient.CommandHandler.HandleSlashCommand;
@@ -42,8 +40,8 @@ namespace ArchipelagoDiscordClient
 
             await BotClient.Start();
 
-            //Run a background task to constantly send messages in the send queue
-            _ = Task.Run(BotClient.MessageQueueHandler.ProcessMessageQueueAsync);
+            //Run a background task to constantly process API requests
+            _ = Task.Run(BotClient.DiscordAPIQueue.ProcessAPICalls);
 
             //TODO, maybe just replace this with a loop to handle console commands on the server it's self
             await Task.Delay(-1);

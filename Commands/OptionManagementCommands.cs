@@ -70,9 +70,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync("Invalid Option", ephemeral: true);
                     return;
                 }
-                ToggleSetting.ToggleSettings[(int)setting].Execute(ActiveSession!.settings, value);
+                ToggleSetting.ToggleSettings[(int)setting].Execute(ActiveSession!.Settings, value);
 
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.settings;
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
                 discordBot.UpdateConnectionCache();
                 await PrintSettings(command, ActiveSession);
             }
@@ -100,10 +100,10 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var values = value.TrimSplit(",").Select(x => x.Trim().ToLower()).ToHashSet();
                 foreach (var v in values)
                 {
-                    if (add) { ActiveSession!.settings.IgnoreTags.Add(v); }
-                    else { ActiveSession!.settings.IgnoreTags.Remove(v); }
+                    if (add) { ActiveSession!.Settings.IgnoreTags.Add(v); }
+                    else { ActiveSession!.Settings.IgnoreTags.Remove(v); }
                 }
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession!.settings;
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession!.Settings;
                 discordBot.UpdateConnectionCache();
                 await PrintSettings(command, ActiveSession);
             }
@@ -113,10 +113,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         {
             public abstract string Name { get; }
             public abstract SlashCommandProperties Properties { get; }
+            public bool IsDebugCommand => false;
             public abstract Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
             public async Task PrintSettings(SocketSlashCommand command, Sessions.ActiveBotSession Session)
             {
-                await command.RespondAsync($"```json\n{Session.settings.ToFormattedJson()}\n```");
+                await command.RespondAsync($"```json\n{Session.Settings.ToFormattedJson()}\n```");
             }
         }
 
@@ -127,6 +128,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                 .WithDescription("Prints a description of each setting").Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {

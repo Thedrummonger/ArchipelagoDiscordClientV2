@@ -13,12 +13,12 @@ namespace ArchipelagoDiscordClientLegacy.Data
         {
             public bool BotIsLive = false;
             public Dictionary<ulong, ActiveBotSession> ActiveSessions = [];
-            public Dictionary<ulong, SessionContructor> ConnectionCache = [];
+            public Dictionary<ulong, SessionConstructor> ConnectionCache = [];
             public AppSettings appSettings;
             public CommandRegistry commandRegistry;
             public SlashCommandHandlers CommandHandler;
             public DiscordMessageHandlers DiscordMessageHandler;
-            public MessageQueueHandler MessageQueueHandler;
+            public BotAPIRequestQueue DiscordAPIQueue;
 
             public DiscordBot(AppSettings Settings)
             {
@@ -26,7 +26,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 CommandHandler = new SlashCommandHandlers(this);
                 commandRegistry = new CommandRegistry(this);
                 DiscordMessageHandler = new DiscordMessageHandlers(this);
-                MessageQueueHandler = new MessageQueueHandler(this);
+                DiscordAPIQueue = new BotAPIRequestQueue();
                 Client = new DiscordSocketClient(DiscordSocketConfig);
             }
 

@@ -17,6 +17,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .WithName(Name)
                 .WithDescription("Goals the current slot").Build();
 
+            public bool IsDebugCommand => true;
+
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out _, out string result))
@@ -30,8 +32,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync("This command is only available for debugging", ephemeral: true);
                     return;
                 }
-                await command.RespondAsync($"Goaled ${session!.archipelagoSession.Players.ActivePlayer.Name} {session.archipelagoSession.Players.ActivePlayer.Game}");
-                session.archipelagoSession.SetGoalAchieved();
+                await command.RespondAsync($"Goaled ${session!.ArchipelagoSession.Players.ActivePlayer.Name} {session.ArchipelagoSession.Players.ActivePlayer.Game}");
+                session.ArchipelagoSession.SetGoalAchieved();
             }
         }
 
@@ -42,6 +44,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                 .WithDescription("Prints the application app settings").Build();
+            public bool IsDebugCommand => true;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {

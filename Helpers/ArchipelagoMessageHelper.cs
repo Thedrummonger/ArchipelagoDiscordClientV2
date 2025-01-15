@@ -10,21 +10,18 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
     {
         public static HashSet<ulong> GetUserPings(this LogMessage message, ActiveBotSession session)
         {
-            switch (message)
+            return message switch
             {
-                case HintItemSendLogMessage hintItemSendLog:
-                    return GetHintPing(hintItemSendLog);
-                case ItemSendLogMessage itemSendMessage:
-                    return GetItemSendPings(itemSendMessage);
-                default:
-                    return [];
-            }
+                HintItemSendLogMessage hintItemSendLog => GetHintPing(hintItemSendLog),
+                ItemSendLogMessage itemSendMessage => GetItemSendPings(itemSendMessage),
+                _ => [],
+            };
             HashSet<ulong> GetItemSendPings(ItemSendLogMessage itemSendMessage)
             {
                 HashSet<ulong> ToPing = [];
                 if (!itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)) return [];
                 if (itemSendMessage.Receiver.Slot == itemSendMessage.Sender.Slot) return [];
-                foreach (var i in session.settings.SlotAssociations)
+                foreach (var i in session.Settings.SlotAssociations)
                 {
                     if (!i.Value.Contains(itemSendMessage.Receiver.Name)) { continue; }
                     if (i.Value.Contains(itemSendMessage.Sender.Name)) { continue; } //Same player, different slot
@@ -37,7 +34,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 HashSet<ulong> ToPing = [];
                 if (hintItemSendLog.Receiver.Slot == hintItemSendLog.Sender.Slot) return [];
                 if (hintItemSendLog.IsFound) return [];
-                foreach (var i in session.settings.SlotAssociations)
+                foreach (var i in session.Settings.SlotAssociations)
                 {
                     if (!i.Value.Contains(hintItemSendLog.Sender.Name)) { continue; }
                     if (i.Value.Contains(hintItemSendLog.Receiver.Name)) { continue; } //Same player, different slot
@@ -59,22 +56,9 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
         public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session)
         {
-            //We can assume this is always true since the message is only sent to the sender and receiver
-            //if (!hintLogMessage.IsRelatedToActivePlayer) return false;
-
-            //A list of players that would print this hint message when it is received
-            HashSet<string> ListeningPlayers = [session.archipelagoSession.Players.ActivePlayer.Name, .. session.AuxiliarySessions.Keys];
-
-            //The slot receiving the message should always take priority
-            if (hintLogMessage.IsReceiverTheActivePlayer) return true;
-
-            //At this point we know we are the sender of the item
-
-            //If the receiver of the item is not an active slot in the session, we should send the hint
-            if (!ListeningPlayers.Contains(hintLogMessage.Receiver.Name)) return true;
-
-            //This should only return false if We are the sender, but the receiver is an active slot in the session
-            return false;
+            HashSet<string> listeningPlayers = [.. session.AuxiliarySessions.Keys, session.ArchipelagoSession.Players.ActivePlayer.Name];
+            // True if the active player is the receiver OR if the receiver is not in the active set
+            return hintLogMessage.IsReceiverTheActivePlayer || !listeningPlayers.Contains(hintLogMessage.Receiver.Name);
         }
 
         public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session)
@@ -82,23 +66,23 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             switch (logMessage)
             {
                 case ServerChatLogMessage:
-                    return session.settings.IgnoreChats;
+                    return session.Settings.IgnoreChats;
                 case ChatLogMessage message:
                     //If it's a discord message from the active player, assume it came from the same chat and doesn't need to be posted
                     if (message.IsActivePlayer && message.ToString().Contains(": [Discord:")) { return true; }
-                    return session.settings.IgnoreChats || message.ShouldIgnoreConnectedPlayerChat(session);
+                    return session.Settings.IgnoreChats || message.ShouldIgnoreConnectedPlayerChat(session);
 
                 case JoinLogMessage message:
-                    return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.Tags.Select(x => x.ToLower())).Any();
+                    return session.Settings.IgnoreLeaveJoin || session.Settings.IgnoreTags.Intersect(message.Tags.Select(x => x.ToLower())).Any();
                 case LeaveLogMessage message:
-                    return session.settings.IgnoreLeaveJoin || session.settings.IgnoreTags.Intersect(message.GetTags().Select(x => x.ToLower())).Any();
+                    return session.Settings.IgnoreLeaveJoin || session.Settings.IgnoreTags.Intersect(message.GetTags().Select(x => x.ToLower())).Any();
 
                 case HintItemSendLogMessage message:
-                    return session.settings.IgnoreHints || !message.ShouldRelayHintMessage(session) || logMessage.ShouldIgnoreUnrelated(session);
+                    return session.Settings.IgnoreHints || !message.ShouldRelayHintMessage(session) || logMessage.ShouldIgnoreUnrelated(session);
 
                 case ItemCheatLogMessage:
                 case ItemSendLogMessage:
-                    return session.settings.IgnoreItemSend || logMessage.ShouldIgnoreUnrelated(session);
+                    return session.Settings.IgnoreItemSend || logMessage.ShouldIgnoreUnrelated(session);
 
                 case AdminCommandResultLogMessage:
                 case GoalLogMessage:
@@ -115,24 +99,24 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
         public static bool ShouldIgnoreConnectedPlayerChat(this ChatLogMessage logMessage, ActiveBotSession session)
         {
-            if (!session.settings.IgnoreConnectedPlayerChats) { return false; }
-            if (logMessage.Player.Name == session.archipelagoSession.Players.ActivePlayer.Name) return true;
+            if (!session.Settings.IgnoreConnectedPlayerChats) { return false; }
+            if (logMessage.Player.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) return true;
             if (logMessage.Player.Name.In([.. session.AuxiliarySessions.Keys])) return true;
             return false;
         }
 
         public static bool ShouldIgnoreUnrelated(this LogMessage logMessage, ActiveBotSession session)
         {
-            if (!session.settings.IgnoreUnrelated) { return false; }
+            if (!session.Settings.IgnoreUnrelated) { return false; }
             switch (logMessage)
             {
                 case PlayerSpecificLogMessage playerSpecificLogMessage:
-                    if (playerSpecificLogMessage.Player.Name == session.archipelagoSession.Players.ActivePlayer.Name) { return false; }
+                    if (playerSpecificLogMessage.Player.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) { return false; }
                     if (playerSpecificLogMessage.Player.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
                     break;
                 case ItemSendLogMessage ItemSendMessage:
-                    if (ItemSendMessage.Sender.Name == session.archipelagoSession.Players.ActivePlayer.Name) { return false; }
-                    if (ItemSendMessage.Receiver.Name == session.archipelagoSession.Players.ActivePlayer.Name) { return false; }
+                    if (ItemSendMessage.Sender.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) { return false; }
+                    if (ItemSendMessage.Receiver.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) { return false; }
                     if (ItemSendMessage.Sender.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
                     if (ItemSendMessage.Receiver.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
                     break;

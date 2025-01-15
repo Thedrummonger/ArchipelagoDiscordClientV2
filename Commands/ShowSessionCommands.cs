@@ -15,6 +15,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                 .WithDescription("Show the active Archipelago session for this channel").Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -23,7 +24,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
-                var APSession = ActiveSession!.archipelagoSession;
+                var APSession = ActiveSession!.ArchipelagoSession;
                 // Build the response
                 var response = $"**Active Archipelago Session**\n" +
                                $"  **Server**: {APSession.Socket.Uri}\n" +
@@ -51,6 +52,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                 .WithDescription("Show all active Archipelago sessions in this server").Build();
+            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -73,7 +75,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var response = "Active Archipelago Sessions:\n";
                 foreach (var i in SessionsInGuild)
                 {
-                    var APSession = i.archipelagoSession;
+                    var APSession = i.ArchipelagoSession;
                     var channel = i.DiscordChannel;
                     if (channel == null) continue;
 

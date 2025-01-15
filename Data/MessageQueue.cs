@@ -1,5 +1,8 @@
-﻿using Discord.WebSocket;
+﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
+using Discord.WebSocket;
+using System.Net.NetworkInformation;
 using TDMUtils;
+using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Data
 {
@@ -7,33 +10,28 @@ namespace ArchipelagoDiscordClientLegacy.Data
     {
         public class QueuedMessage
         {
-            public required ISocketMessageChannel? Channel = null;
-            public required string Message = "";
-            public string RawMessage = "";
-            public HashSet<ulong> UsersToPing = [];
-        }
-        public static QueuedMessage CreateSimpleQueuedMessage(this ISocketMessageChannel channel, string Message, string? raw = null)
-        {
-            return new QueuedMessage
+            public QueuedMessage(string message, string? raw = null, IEnumerable<ulong>? ToPing = null)
             {
-                Message = Message,
-                RawMessage = raw ?? Message,
-                Channel = channel,
-                UsersToPing = []
-            };
+                UsersToPing = ToPing is null ? [] : [.. ToPing];
+                RawMessage = raw ?? Message;
+                Message = message;
+            }
+            public string Message = "";
+            public string RawMessage = "";
+            public HashSet<ulong> UsersToPing;
         }
 
-        public static void QueueMessage(this DiscordBotData.DiscordBot discordBot, QueuedMessage Message)
+        public static void QueueMessageForChannel(this Sessions.ActiveBotSession session, QueuedMessage Message)
         {
-            discordBot.MessageQueueHandler.MessageQueue.SetIfEmpty(Message.Channel!.Id, new Queue<QueuedMessage>());
-            discordBot.MessageQueueHandler.MessageQueue[Message.Channel!.Id].Enqueue(Message);
+            session.MessageQueue.Queue.Enqueue(Message);
         }
-        public static void QueueMessage(this QueuedMessage Message, DiscordBotData.DiscordBot discordBot) => discordBot.QueueMessage(Message);
-
-        public static void QueueMessage(this DiscordBotData.DiscordBot discordBot, ISocketMessageChannel channel, string Message) =>
-            discordBot.QueueMessage(channel.CreateSimpleQueuedMessage(Message));
-
-        public static void QueueMessage(this ISocketMessageChannel channel, DiscordBotData.DiscordBot discordBot, string Message) =>
-            discordBot.QueueMessage(channel.CreateSimpleQueuedMessage(Message));
+        public static void QueueMessageForChannel(this Sessions.ActiveBotSession session, string Message)
+        {
+            session.QueueMessageForChannel(new QueuedMessage(Message));
+        }
+        public static void QueueAPIAction(this DiscordBot discordBot, ISocketMessageChannel channel, string Message)
+        {
+            discordBot.DiscordAPIQueue.Queue.Enqueue(new(channel, Message));
+        }
     }
 }

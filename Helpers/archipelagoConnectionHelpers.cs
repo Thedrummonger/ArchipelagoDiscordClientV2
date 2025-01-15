@@ -14,6 +14,14 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             bot.MessageQueueHandler.MessageQueue.Remove(channelId);
             Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.archipelagoSession.Socket.Uri}");
             if (session.archipelagoSession.Socket.Connected) { await session.archipelagoSession.Socket.DisconnectAsync(); }
+            if (session.AuxiliarySessions.Count > 0)
+            {
+                foreach (var auxSession in session.AuxiliarySessions.Values)
+                {
+                    if (auxSession.Socket.Connected) { await auxSession.Socket.DisconnectAsync(); }
+                }
+                session.AuxiliarySessions.Clear();
+            }
         }
         /// <summary>
         /// Creates the archipelago handlers for the given auxiliary slot connection

@@ -61,7 +61,6 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 {
                     var (channel, message) = Queue.Dequeue();
                     _ = channel.SendMessageAsync(message);
-                    Console.WriteLine(message);
                 }
                 await Task.Delay(DiscordAPIRequestRateLimit);
             }

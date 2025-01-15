@@ -1,4 +1,5 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
+using ArchipelagoDiscordClientLegacy.Handlers;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
@@ -44,12 +45,13 @@ namespace ArchipelagoDiscordClient
             //Run a background task to constantly process API requests
             _ = Task.Run(BotClient.DiscordAPIQueue.ProcessAPICalls);
 
-            RunUserInputLoop();
+            ConsoleCommandHandlers.RegisterCommands();
+            ConsoleCommandHandlers.RunUserInputLoop(BotClient);
 
-            DisconnectAllClients(BotClient);
+            await DisconnectAllClients(BotClient);
         }
 
-        private async void DisconnectAllClients(DiscordBot botClient)
+        private async Task DisconnectAllClients(DiscordBot botClient)
         {
             Console.WriteLine("Disconnecting all clients...");
             foreach (var session in botClient.ActiveSessions.Values)
@@ -64,29 +66,6 @@ namespace ArchipelagoDiscordClient
                 await Task.Delay(20);
             }
             botClient.DiscordAPIQueue.IsProcessing = false;
-        }
-
-        private void RunUserInputLoop()
-        {
-            while (true)
-            {
-                var input = Console.ReadLine();
-                if (input is null) continue;
-                if (input == "exit") break;
-                ProcessConsoleCommand(input);
-            }
-        }
-
-        private void ProcessConsoleCommand(string Input)
-        {
-            if (false) //Eventually replace false with a check for a valid command
-            {
-                //Process the command
-            }
-            else
-            {
-                Console.WriteLine("Invalid Command");
-            }
         }
     }
 }

@@ -50,11 +50,12 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
     }
     public class BotAPIRequestQueue
     {
+        public bool IsProcessing = true;
         private static readonly int DiscordAPIRequestRateLimit = 20; //Only 50 api calls per second are allowed globally for the bot
         public Queue<(ISocketMessageChannel channel, string message)> Queue = [];
         public async Task ProcessAPICalls()
         {
-            while (true)
+            while (IsProcessing)
             {
                 if (Queue.Count > 0)
                 {

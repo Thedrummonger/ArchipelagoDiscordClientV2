@@ -1,4 +1,5 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
+using ArchipelagoDiscordClientLegacy.Helpers;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
@@ -43,8 +44,49 @@ namespace ArchipelagoDiscordClient
             //Run a background task to constantly process API requests
             _ = Task.Run(BotClient.DiscordAPIQueue.ProcessAPICalls);
 
-            //TODO, maybe just replace this with a loop to handle console commands on the server it's self
-            await Task.Delay(-1);
+            RunUserInputLoop();
+
+            DisconnectAllClients(BotClient);
+        }
+
+        private async void DisconnectAllClients(DiscordBot botClient)
+        {
+            Console.WriteLine("Disconnecting all clients...");
+            foreach (var session in botClient.ActiveSessions.Values)
+            {
+                Console.WriteLine(session.DiscordChannel.Name);
+                await archipelagoConnectionHelpers.CleanAndCloseChannel(botClient, session.DiscordChannel.Id);
+                botClient.QueueAPIAction(session.DiscordChannel, $"Connection closed, Bot has exited.");
+            }
+            Console.WriteLine("Waiting for Queue to clear...");
+            while (botClient.DiscordAPIQueue.Queue.Count > 0)
+            {
+                await Task.Delay(20);
+            }
+            botClient.DiscordAPIQueue.IsProcessing = false;
+        }
+
+        private void RunUserInputLoop()
+        {
+            while (true)
+            {
+                var input = Console.ReadLine();
+                if (input is null) continue;
+                if (input == "exit") break;
+                ProcessConsoleCommand(input);
+            }
+        }
+
+        private void ProcessConsoleCommand(string Input)
+        {
+            if (false) //Eventually replace false with a check for a valid command
+            {
+                //Process the command
+            }
+            else
+            {
+                Console.WriteLine("Invalid Command");
+            }
         }
     }
 }

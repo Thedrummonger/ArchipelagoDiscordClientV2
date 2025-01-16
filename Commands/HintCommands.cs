@@ -18,7 +18,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Shows all hint for the current player")
-                    .AddOption("player", ApplicationCommandOptionType.String, "Player to get Hints for, defaults to connected player", false).Build();
+                    .AddOption("player", ApplicationCommandOptionType.String, "Player to get Hints for, defaults to connected player", false)
+                    .AddOption("filter_found", ApplicationCommandOptionType.Boolean, "True: show only found, False: only not found. Leave blank for both", false).Build();
             public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
@@ -31,6 +32,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 var TargetPlayer = session!.ArchipelagoSession.Players.ActivePlayer;
                 var PlayerNameArg = Data.GetArg("player")?.Value;
+                var filter = Data.GetArg("filter_found")?.GetValue<bool>();
                 if (PlayerNameArg is string PlayerNameString)
                 {
                     TargetPlayer = session.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == PlayerNameString);
@@ -49,6 +51,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 List<QueuedMessage> Messages = [];
                 foreach (var hint in hints)
                 {
+                    if (filter is not null && hint.Found != filter) continue;
                     var FindingPlayer = session.ArchipelagoSession.Players.GetPlayerInfo(hint.FindingPlayer);
                     var ReceivingPlayer = session.ArchipelagoSession.Players.GetPlayerInfo(hint.ReceivingPlayer);
                     var Item = session.ArchipelagoSession.Items.GetItemName(hint.ItemId, ReceivingPlayer.Game);

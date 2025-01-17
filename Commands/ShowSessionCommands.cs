@@ -8,22 +8,33 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 {
     public static class ShowSessionCommands
     {
-        public class ShowChannelSessionCommand : ICommand
+        public class ShowSessionCommand : ICommand
         {
-            public string Name => "print_channel_session";
+            public string Name => "print_session";
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
+                .AddOption("show_all", ApplicationCommandOptionType.String, "Print all session in current guild", false)
                 .WithDescription("Show the active Archipelago session for this channel").Build();
+
             public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out _, out string Error))
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel commandData, out string Error))
                 {
                     await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
+                var ShowAllInGuild = commandData.GetArg("show_all")?.GetValue<bool>() ?? false;
+                if (ShowAllInGuild)
+                    await ShowGuild(command, discordBot);
+                else
+                    await ShowChannel(command, ActiveSession!);
+            }
+
+            async Task ShowChannel(SocketSlashCommand command, Sessions.ActiveBotSession ActiveSession)
+            {
                 var APSession = ActiveSession!.ArchipelagoSession;
                 // Build the response
                 var response = $"**Active Archipelago Session**\n" +
@@ -43,18 +54,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 await command.RespondAsync(response, ephemeral: true);
             }
-        }
 
-        public class ShowServerSessionsCommand : ICommand
-        {
-            public string Name => "print_server_sessions";
-
-            public SlashCommandProperties Properties => new SlashCommandBuilder()
-                .WithName(Name)
-                .WithDescription("Show all active Archipelago sessions in this server").Build();
-            public bool IsDebugCommand => false;
-
-            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            async Task ShowGuild(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (command.Channel is not SocketTextChannel)
                 {

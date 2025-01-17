@@ -98,11 +98,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var add = Data.GetArg("add")?.GetValue<bool>() ?? true;
                 var value = Data.GetArg("tags")?.GetValue<string?>() ?? "";
                 var values = value.TrimSplit(",").Select(x => x.Trim().ToLower()).ToHashSet();
-                foreach (var v in values)
-                {
-                    if (add) { ActiveSession!.Settings.IgnoreTags.Add(v); }
-                    else { ActiveSession!.Settings.IgnoreTags.Remove(v); }
-                }
+                if (add)
+                    ActiveSession!.Settings.IgnoreTags.UnionWith(values);
+                else
+                    ActiveSession!.Settings.IgnoreTags.ExceptWith(values);
+
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession!.Settings;
                 discordBot.UpdateConnectionCache();
                 await PrintSettings(command, ActiveSession);

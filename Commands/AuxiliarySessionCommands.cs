@@ -14,12 +14,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
     {
         public class AddAuxiliarySessionsCommand : ICommand
         {
-            public string Name => "add_auxiliary_sessions";
+            public string Name => "edit_auxiliary_sessions";
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
-                    .WithDescription("Creates auxiliary connections to the given slots to allow interaction with those slots")
-                    .AddOption("slots", ApplicationCommandOptionType.String, "Slots to create a auxiliary connection", false).Build();
+                    .WithDescription("Adds or removes auxiliary connections to the given slots to allow interaction with those slots")
+                    .AddOption("add", ApplicationCommandOptionType.Boolean, "true: add, false: remove", true)
+                    .AddOption("slots", ApplicationCommandOptionType.String, "Slots to add or remove a auxiliary connection", false).Build();
             public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
@@ -29,6 +30,21 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(Result, ephemeral: true);
                     return;
                 }
+                var actionArg = commandData.GetArg("add")?.GetValue<bool>();
+                if (actionArg is not bool action)
+                {
+                    await command.RespondAsync("Invalid arguments", ephemeral: true);
+                    return;
+                }
+                else if (action)
+                    await Add(command, discordBot, commandData, session!);
+                else
+                    await Remove(command, discordBot, commandData, session!);
+
+            }
+
+            async Task Add(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot, CommandData.CommandDataModel commandData, ActiveBotSession session)
+            {
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
                 //Results
@@ -90,24 +106,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     ];
                 await command.ModifyOriginalResponseAsync(x => x.Content = String.Join("\n", MessageParts));
             }
-        }
-        public class RemoveAuxiliarySessionsCommand : ICommand
-        {
-            public string Name => "remove_auxiliary_sessions";
 
-            public SlashCommandProperties Properties => new SlashCommandBuilder()
-                .WithName(Name)
-                    .WithDescription("Closes and Removes the given Auxiliary connections")
-                    .AddOption("slots", ApplicationCommandOptionType.String, "Slots to close Auxiliary connection for", false).Build();
-            public bool IsDebugCommand => false;
-
-            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
+            async Task Remove(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot, CommandData.CommandDataModel commandData, ActiveBotSession session)
             {
-                if (!command.Validate(discordBot, out ActiveBotSession? session, out CommandData.CommandDataModel commandData, out string Result))
-                {
-                    await command.RespondAsync(Result, ephemeral: true);
-                    return;
-                }
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
                 HashSet<string> ActiveAuxSessions = [.. session!.AuxiliarySessions.Keys];

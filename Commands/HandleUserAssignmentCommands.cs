@@ -11,66 +11,36 @@ namespace ArchipelagoDiscordClientLegacy.Commands
     {
         public class UnAssignUserCommand : ICommand
         {
-            public string Name => "detach_user_from_player";
+            public string Name => "edit_user_assignments";
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Detaches discord user from archipelago player")
+                    .AddOption("add", ApplicationCommandOptionType.User, "True: Add, False: Remove", true)
                     .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
                     .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
             public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out CommandData.CommandDataModel commandData, out string result))
                 {
-                    await command.RespondAsync(Error, ephemeral: true);
+                    await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
-
-                var user = Data.GetArg("user")?.GetValue<SocketUser>();
-                var players = Data.GetArg("players")?.GetValue<string?>();
-
-                if (!ActiveSession!.Settings.SlotAssociations.ContainsKey(user!.Id!))
+                var actionArg = commandData.GetArg("add")?.GetValue<bool>();
+                if (actionArg is not bool action)
                 {
-                    await command.RespondAsync($"There are no slot associations for {user!.Username}.", ephemeral: true);
+                    await command.RespondAsync("Invalid arguments", ephemeral: true);
                     return;
                 }
-
-                var PlayerList = players!.TrimSplit(",").ToHashSet();
-
-                HashSet<string> valid = [];
-                HashSet<string> invalid = [];
-                foreach (var player in PlayerList)
-                {
-                    bool WasRemoved = ActiveSession.Settings.SlotAssociations[user!.Id].Remove(player);
-                    HashSet<string> trackingList = WasRemoved ? valid : invalid;
-                    trackingList.Add(player);
-                }
-
-                List<string> MessageParts =
-                    [
-                    ..valid.CreateResultList($"The following players were removed from {user!.Username}"),
-                    ..invalid.CreateResultList($"The following players were not associated with {user!.Username}")
-                    ];
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
-                discordBot.UpdateConnectionCache();
-                await command.RespondAsync(String.Join("\n", MessageParts));
+                else if (action)
+                    await Add(command, discordBot, commandData, session!);
+                else
+                    await Remove(command, discordBot, commandData, session!);
             }
-        }
 
-        public class AssignUserCommand : ICommand
-        {
-            public string Name => "assign_user_to_player";
-
-            public SlashCommandProperties Properties => new SlashCommandBuilder()
-                .WithName(Name)
-                    .WithDescription("Assign discord user to archipelago player")
-                    .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
-                    .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
-            public bool IsDebugCommand => false;
-
-            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            async Task Add(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel commandData, Sessions.ActiveBotSession session)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
                 {
@@ -113,6 +83,43 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
                 discordBot.UpdateConnectionCache();
 
+                await command.RespondAsync(String.Join("\n", MessageParts));
+            }
+            async Task Remove(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel commandData, Sessions.ActiveBotSession session)
+            {
+                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
+                {
+                    await command.RespondAsync(Error, ephemeral: true);
+                    return;
+                }
+
+                var user = Data.GetArg("user")?.GetValue<SocketUser>();
+                var players = Data.GetArg("players")?.GetValue<string?>();
+
+                if (!ActiveSession!.Settings.SlotAssociations.ContainsKey(user!.Id!))
+                {
+                    await command.RespondAsync($"There are no slot associations for {user!.Username}.", ephemeral: true);
+                    return;
+                }
+
+                var PlayerList = players!.TrimSplit(",").ToHashSet();
+
+                HashSet<string> valid = [];
+                HashSet<string> invalid = [];
+                foreach (var player in PlayerList)
+                {
+                    bool WasRemoved = ActiveSession.Settings.SlotAssociations[user!.Id].Remove(player);
+                    HashSet<string> trackingList = WasRemoved ? valid : invalid;
+                    trackingList.Add(player);
+                }
+
+                List<string> MessageParts =
+                    [
+                    ..valid.CreateResultList($"The following players were removed from {user!.Username}"),
+                    ..invalid.CreateResultList($"The following players were not associated with {user!.Username}")
+                    ];
+                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
+                discordBot.UpdateConnectionCache();
                 await command.RespondAsync(String.Join("\n", MessageParts));
             }
         }

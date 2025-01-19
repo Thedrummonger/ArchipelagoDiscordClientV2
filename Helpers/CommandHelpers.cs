@@ -1,4 +1,5 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
+using Discord;
 using Discord.WebSocket;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
@@ -50,6 +51,26 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         {
             if (!Values.Any()) return [];
             return [Status, .. Values.Select(x => $"-{x}")];
+        }
+
+        public enum AddRemoveAction
+        {
+            add,
+            remove,
+        }
+        public static readonly string AddRemoveActionName = "action";
+
+        public static SlashCommandBuilder AddRemoveActionOption(this SlashCommandBuilder commandBuilder)
+        {
+            var optionBuilder = new SlashCommandOptionBuilder()
+                    .WithName(AddRemoveActionName)
+                    .WithDescription("Select a setting to toggle")
+                    .WithRequired(true)
+                    .WithType(ApplicationCommandOptionType.Integer)
+                    .AddChoice(AddRemoveAction.add.ToString(), (int)AddRemoveAction.add)
+                    .AddChoice(AddRemoveAction.remove.ToString(), (int)AddRemoveAction.remove);
+            commandBuilder.AddOption(optionBuilder);
+            return commandBuilder;
         }
     }
 }

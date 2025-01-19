@@ -19,7 +19,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Adds or removes auxiliary connections to the given slots to allow interaction with those slots")
-                    .AddOption("add", ApplicationCommandOptionType.Boolean, "true: add, false: remove", true)
+                    .AddRemoveActionOption()
                     .AddOption("slots", ApplicationCommandOptionType.String, "Slots to add or remove a auxiliary connection", false).Build();
             public bool IsDebugCommand => false;
 
@@ -30,13 +30,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(Result, ephemeral: true);
                     return;
                 }
-                var actionArg = commandData.GetArg("add")?.GetValue<bool>();
-                if (actionArg is not bool action)
+                var actionArg = commandData.GetArg(CommandHelpers.AddRemoveActionName)?.GetValue<long>();
+                if (actionArg is not long action)
                 {
                     await command.RespondAsync("Invalid arguments", ephemeral: true);
                     return;
                 }
-                else if (action)
+                else if (action == (int)CommandHelpers.AddRemoveAction.add)
                     await Add(command, discordBot, commandData, session!);
                 else
                     await Remove(command, discordBot, commandData, session!);

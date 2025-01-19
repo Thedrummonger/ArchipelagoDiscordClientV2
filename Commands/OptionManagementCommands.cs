@@ -95,7 +95,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Adds or removes ignored Client tags for this session")
-                    .AddOption("add", ApplicationCommandOptionType.Boolean, "true: add, false: remove", true)
+                    .AddRemoveActionOption()
                     .AddOption("tags", ApplicationCommandOptionType.String, "Comma-separated tags", true).Build();
 
             public bool IsDebugCommand => false;
@@ -107,10 +107,15 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
-                var add = Data.GetArg("add")?.GetValue<bool>() ?? true;
+                var actionArg = Data.GetArg(CommandHelpers.AddRemoveActionName)?.GetValue<long>();
+                if (actionArg is not long action)
+                {
+                    await command.RespondAsync("Invalid arguments", ephemeral: true);
+                    return;
+                }
                 var value = Data.GetArg("tags")?.GetValue<string?>() ?? "";
                 var values = value.TrimSplit(",").Select(x => x.Trim().ToLower()).ToHashSet();
-                if (add)
+                if (action == (int)CommandHelpers.AddRemoveAction.add)
                     ActiveSession!.Settings.IgnoreTags.UnionWith(values);
                 else
                     ActiveSession!.Settings.IgnoreTags.ExceptWith(values);

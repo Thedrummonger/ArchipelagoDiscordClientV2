@@ -16,7 +16,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Detaches discord user from archipelago player")
-                    .AddOption("add", ApplicationCommandOptionType.Boolean, "True: Add, False: Remove", true)
+                    .AddRemoveActionOption()
                     .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
                     .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
             public bool IsDebugCommand => false;
@@ -28,13 +28,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
-                var actionArg = commandData.GetArg("add")?.GetValue<bool>();
-                if (actionArg is not bool action)
+                var actionArg = commandData.GetArg(CommandHelpers.AddRemoveActionName)?.GetValue<long>();
+                if (actionArg is not long action)
                 {
                     await command.RespondAsync("Invalid arguments", ephemeral: true);
                     return;
                 }
-                else if (action)
+                else if (action == (int)CommandHelpers.AddRemoveAction.add)
                     await Add(command, discordBot, commandData, session!);
                 else
                     await Remove(command, discordBot, commandData, session!);

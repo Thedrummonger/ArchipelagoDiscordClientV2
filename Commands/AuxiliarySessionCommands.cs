@@ -18,7 +18,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
-                    .WithDescription("Adds or removes auxiliary connections to the given slots to allow interaction with those slots")
+                    .WithDescription("Adds or removes auxiliary connections to the given slots")
                     .AddRemoveActionOption()
                     .AddOption("slots", ApplicationCommandOptionType.String, "Slots to add or remove a auxiliary connection", false).Build();
             public bool IsDebugCommand => false;
@@ -72,8 +72,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         else ValidSlots.Add(playerInfo);
                     }
                 }
-
-                await command.RespondAsync($"Attempting to add auxiliary connections for\n{string.Join(", ", ValidSlots.Select(x => x.Name))}.");
+                await command.RespondAsync(string.Join("\n", ValidSlots.Select(x => x.Name).CreateResultList("Attempting to add auxiliary connections for")));
                 foreach (var slot in ValidSlots)
                 {
                     var supportSession = ArchipelagoSessionFactory.CreateSession(session.ArchipelagoSession.Socket.Uri);
@@ -117,7 +116,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     [.. session!.AuxiliarySessions.Keys] :
                     [.. SlotArgs.TrimSplit(",")];
 
-                await command.RespondAsync($"Attempting to disconnect auxiliary connections for\n{string.Join(", ", SessionToRemove.Select(x => x))}.");
+                await command.RespondAsync(string.Join("\n", SessionToRemove.CreateResultList("Attempting to disconnect auxiliary connections for")));
 
                 //Results
                 HashSet<string> RemovedSessions = [];
@@ -152,7 +151,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
-                .WithDescription("Sends a message as the given auxiliary slot")
+                .WithDescription("Sends a message as the given archipelago player")
                 .AddOption("slot", ApplicationCommandOptionType.String, "Slot to send as", true)
                 .AddOption("message", ApplicationCommandOptionType.String, "Message to send", true).Build();
 

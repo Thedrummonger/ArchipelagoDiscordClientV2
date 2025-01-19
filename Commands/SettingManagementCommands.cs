@@ -7,15 +7,15 @@ using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
-    public static class AppSettingManagementCommands
+    public static class SettingManagementCommands
     {
-        public class PrintAppSettingsCommand : ICommand
+        public class PrintSessionSettingsCommand : ICommand
         {
             public string Name => "print_session_settings";
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
-                    .WithDescription("Prints the current bot settings").Build();
+                    .WithDescription("Prints the current sessions settings").Build();
 
             public bool IsDebugCommand => false;
 
@@ -30,7 +30,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             }
         }
 
-        public class ToggleAppSettings : ICommand
+        public class ToggleSessionSettings : ICommand
         {
             public string Name => "toggle_session_settings";
 

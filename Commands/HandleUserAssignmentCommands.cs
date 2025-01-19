@@ -15,7 +15,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
-                    .WithDescription("Detaches discord user from archipelago player")
+                    .WithDescription("Edits Associations between a discord user and a list of archipelago players")
                     .AddRemoveActionOption()
                     .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
                     .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();

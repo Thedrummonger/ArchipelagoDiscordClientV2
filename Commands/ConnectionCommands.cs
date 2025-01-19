@@ -4,7 +4,6 @@ using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
-using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
@@ -17,11 +16,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public override SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Connect this channel to an Archipelago server")
-                    .AddOption("ip", ApplicationCommandOptionType.String, "Server IP", true)
-                    .AddOption("port", ApplicationCommandOptionType.Integer, "Server Port", true)
-                    .AddOption("game", ApplicationCommandOptionType.String, "Game name", true)
-                    .AddOption("name", ApplicationCommandOptionType.String, "Player name", true)
-                    .AddOption("password", ApplicationCommandOptionType.String, "Optional password", false).Build();
+                    .AddOption("address", ApplicationCommandOptionType.String, "Server address. formatted {ip}:{port}", true)
+                    .AddOption("name", ApplicationCommandOptionType.String, "Slot Name of the connecting player", true)
+                    .AddOption("password", ApplicationCommandOptionType.String, "Server password (optional)", false).Build();
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -30,25 +27,24 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
-
-                var PortParam = Data.GetArg("port")?.GetValue<long?>();
-                int ParsedPort = PortParam is null || PortParam == default || PortParam < 1 ? 38281 : (int)PortParam;
-                var ConnectionData = new Sessions.ArchipelagoConnectionInfo
-                {
-                    IP = Data.GetArg("ip")?.GetValue<string>(),
-                    Port = ParsedPort,
-                    Game = Data.GetArg("game")?.GetValue<string>(),
-                    Name = Data.GetArg("name")?.GetValue<string>(),
-                    Password = Data.GetArg("password")?.GetValue<string>()
-                };
-
-                if (ConnectionData.IP is null || ConnectionData.Game is null || ConnectionData.Name is null)
+                var IPArg = Data.GetArg("address")?.GetValue<string>();
+                var NameArg = Data.GetArg("name")?.GetValue<string>();
+                var PasswordArg = Data.GetArg("password")?.GetValue<string>();
+                var (Ip, Port) = NetworkHelpers.ParseIpAddress(IPArg);
+                if (Ip is null || string.IsNullOrWhiteSpace(NameArg))
                 {
                     await command.RespondAsync("Connection args invalid.", ephemeral: true);
                     return;
                 }
+                var ConnectionData = new Sessions.ArchipelagoConnectionInfo
+                {
+                    IP = Ip,
+                    Port = Port,
+                    Name = NameArg,
+                    Password = PasswordArg
+                };
 
-                var SessionInfo = new Sessions.SessionConstructor()
+                var SessionInfo = new Sessions.SessionConstructor
                 {
                     ArchipelagoConnectionInfo = ConnectionData,
                     Settings = discordBot.appSettings.AppDefaultSettings
@@ -119,18 +115,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             internal async Task ConnectToAPServer(SocketSlashCommand command, DiscordBot discordBot, Sessions.SessionConstructor sessionConstructor)
             {
                 var Data = command.GetCommandData();
-                Console.WriteLine($"Connecting " +
-                    $"{Data.channelName} to " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name} playing " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Game}");
 
                 await command.RespondAsync($"Connecting {Data.channelName} to " +
                     $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
                     $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name} playing " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Game}...");
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}");
 
                 // Create a new session
                 try
@@ -138,7 +127,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     var session = ArchipelagoSessionFactory.CreateSession(sessionConstructor.ArchipelagoConnectionInfo!.IP, sessionConstructor.ArchipelagoConnectionInfo!.Port);
 
                     LoginResult result = session.TryConnectAndLogin(
-                        sessionConstructor.ArchipelagoConnectionInfo!.Game,
+                        null, //Game is not needed since we connect with the TextOnly Tag
                         sessionConstructor.ArchipelagoConnectionInfo!.Name,
                         ItemsHandlingFlags.AllItems,
                         Constants.APVersion,
@@ -158,25 +147,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         return;
                     }
 
-                    Console.WriteLine($"Connected to Archipelago server at " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.");
-
                     var NewSession = new Sessions.ActiveBotSession(sessionConstructor, discordBot, Data.textChannel!, session);
                     discordBot.ActiveSessions[Data.channelId] = NewSession;
-                    discordBot.ConnectionCache[Data.channelId] = sessionConstructor;
+
+                    discordBot.UpdateConnectionCache(Data.channelId, sessionConstructor);
 
                     NewSession.CreateArchipelagoHandlers();
                     _ = NewSession.MessageQueue.ProcessChannelMessages();
 
-                    File.WriteAllText(Constants.Paths.ConnectionCache, discordBot.ConnectionCache.ToFormattedJson());
+                    var SuccessMessage = $"Successfully connected channel {Data.channelName} to Archipelago server at " +
+                        $"{NewSession.ArchipelagoSession.Socket.Uri.Host}:" +
+                        $"{NewSession.ArchipelagoSession.Socket.Uri.Port} as " +
+                        $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Name} playing " +
+                        $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Game}.";
 
-                    await command.ModifyOriginalResponseAsync(msg => msg.Content =
-                        $"Successfully connected channel {Data.channelName} to Archipelago server at " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo.IP}:" +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo.Port} as " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo.Name}.");
+                    Console.WriteLine(SuccessMessage);
+                    await command.ModifyOriginalResponseAsync(msg => msg.Content = SuccessMessage);
                 }
                 catch (Exception ex)
                 {

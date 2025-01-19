@@ -25,7 +25,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
         }
         public async Task Initialize()
         {
-            await _discordBot.GetClient().BulkOverwriteGlobalApplicationCommandsAsync(Commands.Values.Select(x => x.Properties).ToArray());
+            await _discordBot.Client.BulkOverwriteGlobalApplicationCommandsAsync(Commands.Values.Select(x => x.Properties).ToArray());
         }
     }
 

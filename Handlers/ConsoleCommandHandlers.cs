@@ -1,11 +1,4 @@
-﻿using ArchipelagoDiscordClientLegacy.Commands;
-using ArchipelagoDiscordClientLegacy.Commands.ConsoleCommands;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using ArchipelagoDiscordClientLegacy.Commands.ConsoleCommands;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers

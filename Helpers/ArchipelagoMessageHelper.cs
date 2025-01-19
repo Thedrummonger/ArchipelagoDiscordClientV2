@@ -1,5 +1,4 @@
 ﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
-using System.Text;
 using System.Text.RegularExpressions;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
@@ -58,7 +57,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
         public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session)
         {
-            if (string.IsNullOrWhiteSpace(logMessage.ToString())) 
+            if (string.IsNullOrWhiteSpace(logMessage.ToString()))
                 return true;
             switch (logMessage)
             {

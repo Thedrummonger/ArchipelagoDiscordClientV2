@@ -16,14 +16,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Detaches discord user from archipelago player")
-                    .AddOption("add", ApplicationCommandOptionType.User, "True: Add, False: Remove", true)
+                    .AddOption("add", ApplicationCommandOptionType.Boolean, "True: Add, False: Remove", true)
                     .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
                     .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
             public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
-                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out CommandData.CommandDataModel commandData, out string result))
+                if (!command.Validate(discordBot, out var session, out var commandData, out string result))
                 {
                     await command.RespondAsync(result, ephemeral: true);
                     return;
@@ -42,85 +42,91 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             async Task Add(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel commandData, Sessions.ActiveBotSession session)
             {
-                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
+                if (!command.Validate(discordBot, out var activeSession, out var data, out string Error))
                 {
                     await command.RespondAsync(Error, ephemeral: true);
                     return;
                 }
 
-                var user = Data.GetArg("user")?.GetValue<SocketUser>();
-                var players = Data.GetArg("players")?.GetValue<string?>();
-
-                var APPlayers = ActiveSession!.ArchipelagoSession.Players.AllPlayers.Select(p => p.Name);
-
-                ActiveSession.Settings.SlotAssociations!.SetIfEmpty(user!.Id, []);
-
-                var CurrentAssociations = ActiveSession.Settings.SlotAssociations[user!.Id];
-
-                var PlayerList = players!.TrimSplit(",").ToHashSet(); //Players passed by the command
-
-                HashSet<string> AddedPlayers = [];
-                HashSet<string> InvalidPlayers = [];
-                HashSet<string> AlreadyAssigned = [];
-                foreach (var Player in PlayerList)
+                var user = data.GetArg("user")?.GetValue<SocketUser>();
+                var players = data.GetArg("players")?.GetValue<string?>()?.TrimSplit(",").ToHashSet();
+                if (user == null || players == null || activeSession == null)
                 {
-                    if (!APPlayers.Contains(Player))
-                    {
-                        InvalidPlayers.Add(Player);
-                        continue;
-                    }
-                    var WasAdded = CurrentAssociations.Add(Player);
-                    var UpdateList = WasAdded ? AddedPlayers : AlreadyAssigned;
+                    await command.RespondAsync("Invalid arguments", ephemeral: true);
+                    return;
                 }
 
-                List<string> MessageParts =
+                activeSession.Settings.SlotAssociations!.SetIfEmpty(user!.Id, []);
+
+                var currentAssociations = activeSession.Settings.SlotAssociations[user.Id];
+                var apPlayers = activeSession.ArchipelagoSession.Players.AllPlayers.Select(p => p.Name);
+
+                var addedPlayers = new HashSet<string>();
+                var invalidPlayers = new HashSet<string>();
+                var alreadyAssigned = new HashSet<string>();
+
+                foreach (var player in players)
+                {
+                    if (!apPlayers.Contains(player)) invalidPlayers.Add(player);
+                    else if (currentAssociations.Add(player)) addedPlayers.Add(player);
+                    else alreadyAssigned.Add(player);
+                }
+
+                List<string> messageParts =
                     [
-                    ..PlayerList.CreateResultList($"The following players were associated to {user!.Username}"),
-                    ..AlreadyAssigned.CreateResultList($"The following players were already assigned to {user!.Username}"),
-                    ..InvalidPlayers.CreateResultList($"The following players were not valid players in archipelago"),
+                    ..addedPlayers.CreateResultList($"The following players were associated with {user!.Username}"),
+                    ..alreadyAssigned.CreateResultList($"The following players were already associated with {user!.Username}"),
+                    ..invalidPlayers.CreateResultList($"The following players were not valid players in archipelago"),
                     ];
 
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
-                discordBot.UpdateConnectionCache();
-
-                await command.RespondAsync(String.Join("\n", MessageParts));
+                discordBot.UpdateConnectionCache(data.channelId, activeSession.Settings);
+                await command.RespondAsync(string.Join("\n", messageParts));
             }
             async Task Remove(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel commandData, Sessions.ActiveBotSession session)
             {
-                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
+                if (!command.Validate(discordBot, out var activeSession, out var data, out string error))
                 {
-                    await command.RespondAsync(Error, ephemeral: true);
+                    await command.RespondAsync(error, ephemeral: true);
                     return;
                 }
 
-                var user = Data.GetArg("user")?.GetValue<SocketUser>();
-                var players = Data.GetArg("players")?.GetValue<string?>();
+                var user = data.GetArg("user")?.GetValue<SocketUser>();
+                var players = data.GetArg("players")?.GetValue<string?>()?.TrimSplit(",").ToHashSet();
 
-                if (!ActiveSession!.Settings.SlotAssociations.ContainsKey(user!.Id!))
+                if (user == null || players == null || activeSession == null)
                 {
-                    await command.RespondAsync($"There are no slot associations for {user!.Username}.", ephemeral: true);
+                    await command.RespondAsync("Invalid arguments", ephemeral: true);
                     return;
                 }
 
-                var PlayerList = players!.TrimSplit(",").ToHashSet();
-
-                HashSet<string> valid = [];
-                HashSet<string> invalid = [];
-                foreach (var player in PlayerList)
+                if (!activeSession.Settings.SlotAssociations.TryGetValue(user.Id, out var currentAssociations))
                 {
-                    bool WasRemoved = ActiveSession.Settings.SlotAssociations[user!.Id].Remove(player);
-                    HashSet<string> trackingList = WasRemoved ? valid : invalid;
-                    trackingList.Add(player);
+                    await command.RespondAsync($"There are no slot associations for {user.Username}.", ephemeral: true);
+                    return;
                 }
+
+                var validRemovals = new HashSet<string>();
+                var invalidRemovals = new HashSet<string>();
+
+                foreach (var player in players)
+                {
+                    if (currentAssociations.Remove(player))
+                        validRemovals.Add(player);
+                    else
+                        invalidRemovals.Add(player);
+                }
+
+                if (activeSession.Settings.SlotAssociations[user.Id].Count == 0)
+                    activeSession.Settings.SlotAssociations.Remove(user.Id);
 
                 List<string> MessageParts =
                     [
-                    ..valid.CreateResultList($"The following players were removed from {user!.Username}"),
-                    ..invalid.CreateResultList($"The following players were not associated with {user!.Username}")
+                    ..validRemovals.CreateResultList($"The following players were removed from {user!.Username}"),
+                    ..invalidRemovals.CreateResultList($"The following players were not associated with {user!.Username}")
                     ];
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
-                discordBot.UpdateConnectionCache();
-                await command.RespondAsync(String.Join("\n", MessageParts));
+
+                discordBot.UpdateConnectionCache(data.channelId, activeSession.Settings);
+                await command.RespondAsync(string.Join("\n", MessageParts));
             }
         }
     }

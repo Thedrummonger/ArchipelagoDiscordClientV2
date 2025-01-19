@@ -31,10 +31,10 @@ namespace ArchipelagoDiscordClient
 
             BotClient.ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionConstructor>(), true);
 
-            BotClient.GetClient().Ready += BotClient.commandRegistry.Initialize;
-            BotClient.GetClient().SlashCommandExecuted += BotClient.CommandHandler.HandleSlashCommand;
-            BotClient.GetClient().MessageReceived += BotClient.DiscordMessageHandler.HandleDiscordMessageReceivedAsync;
-            BotClient.GetClient().Log += (logMessage) =>
+            BotClient.Client.Ready += BotClient.commandRegistry.Initialize;
+            BotClient.Client.SlashCommandExecuted += BotClient.CommandHandler.HandleSlashCommand;
+            BotClient.Client.MessageReceived += BotClient.DiscordMessageHandler.HandleDiscordMessageReceivedAsync;
+            BotClient.Client.Log += (logMessage) =>
             {
                 Console.WriteLine(logMessage.ToString());
                 return Task.CompletedTask;

@@ -9,15 +9,17 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 {
     public static class AppSettingManagementCommands
     {
-        public class PrintAppSettingsCommand : AppSettingManagementCommand
+        public class PrintAppSettingsCommand : ICommand
         {
-            public override string Name => "show_bot_settings";
+            public string Name => "print_session_settings";
 
-            public override SlashCommandProperties Properties => new SlashCommandBuilder()
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Prints the current bot settings").Build();
 
-            public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            public bool IsDebugCommand => false;
+
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out CommandData.CommandDataModel Data, out string result))
                 {
@@ -28,11 +30,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             }
         }
 
-        public class ToggleAppSettings : AppSettingManagementCommand
+        public class ToggleAppSettings : ICommand
         {
-            public override string Name => "toggle_bot_settings";
+            public string Name => "toggle_session_settings";
 
-            public override SlashCommandProperties Properties
+            public SlashCommandProperties Properties
             {
                 get
                 {
@@ -46,16 +48,18 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         var value = ToggleSetting.ToggleSettings[index];
                         optionBuilder.AddChoice(value.Key, index);
                     }
-
+                    optionBuilder.AddChoice("help", ToggleSetting.ToggleSettings.Length);
                     return new SlashCommandBuilder()
                         .WithName(Name)
-                        .WithDescription("Toggle the selected bot setting")
+                        .WithDescription("Toggle the selected setting for this session")
                         .AddOption(optionBuilder)
                         .AddOption("value", ApplicationCommandOptionType.Boolean, "Value", false).Build();
                 }
             }
 
-            public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            public bool IsDebugCommand => false;
+
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
                 {
@@ -65,30 +69,38 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var setting = (Data.GetArg("setting")?.GetValue<long>());
                 var value = Data.GetArg("value")?.GetValue<bool?>();
 
-                if (setting is null || setting < 0 || setting >= ToggleSetting.ToggleSettings.Length)
+                if (setting is null || setting < 0 || setting > ToggleSetting.ToggleSettings.Length)
                 {
                     await command.RespondAsync("Invalid Option", ephemeral: true);
                     return;
                 }
+
+                if (setting == ToggleSetting.ToggleSettings.Length)
+                {
+                    await PrintHelp(command);
+                    return;
+                }
+
                 ToggleSetting.ToggleSettings[(int)setting].Execute(ActiveSession!.Settings, value);
 
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession.Settings;
-                discordBot.UpdateConnectionCache();
+                discordBot.UpdateConnectionCache(Data.channelId, ActiveSession.Settings);
                 await PrintSettings(command, ActiveSession);
             }
         }
 
-        public class EditTagIgnoreList : AppSettingManagementCommand
+        public class EditTagIgnoreList : ICommand
         {
-            public override string Name => "edit_ignored_tags";
+            public string Name => "edit_session_ignored_tags";
 
-            public override SlashCommandProperties Properties => new SlashCommandBuilder()
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
-                    .WithDescription("Adds or removes ignored tags")
+                    .WithDescription("Adds or removes ignored Client tags for this session")
                     .AddOption("add", ApplicationCommandOptionType.Boolean, "true: add, false: remove", true)
                     .AddOption("tags", ApplicationCommandOptionType.String, "Comma-separated tags", true).Build();
 
-            public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            public bool IsDebugCommand => false;
+
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
                 {
@@ -103,39 +115,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 else
                     ActiveSession!.Settings.IgnoreTags.ExceptWith(values);
 
-                discordBot.ConnectionCache[Data.channelId].Settings = ActiveSession!.Settings;
-                discordBot.UpdateConnectionCache();
+                discordBot.UpdateConnectionCache(Data.channelId, ActiveSession!.Settings);
                 await PrintSettings(command, ActiveSession);
             }
         }
 
-        public abstract class AppSettingManagementCommand : ICommand
+        private static async Task PrintSettings(SocketSlashCommand command, Sessions.ActiveBotSession Session)
         {
-            public abstract string Name { get; }
-            public abstract SlashCommandProperties Properties { get; }
-            public bool IsDebugCommand => false;
-            public abstract Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
-            public async Task PrintSettings(SocketSlashCommand command, Sessions.ActiveBotSession Session)
-            {
-                await command.RespondAsync($"```json\n{Session.Settings.ToFormattedJson()}\n```");
-            }
+            await command.RespondAsync($"```json\n{Session.Settings.ToFormattedJson()}\n```");
         }
 
-        public class SettingDetailsCommand : ICommand
+        private static async Task PrintHelp(SocketSlashCommand command)
         {
-            public string Name => "print_setting_details";
-
-            public SlashCommandProperties Properties => new SlashCommandBuilder()
-                .WithName(Name)
-                .WithDescription("Prints a description of each setting").Build();
-            public bool IsDebugCommand => false;
-
-            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
-            {
-                List<string> Print = ToggleSetting.ToggleSettings.Select(x => $"{x.Key}: {x.Description}").ToList();
-                Print.Add("edit_ignored_tags: Ignore tags will ignore a client message if the message tags contain an ignore tag");
-                await command.RespondAsync(string.Join("\n", Print));
-            }
+            List<string> Print = ToggleSetting.ToggleSettings.Select(x => $"{x.Key}: {x.Description}").ToList();
+            Print.Add("edit_ignored_tags: connect/disconnect messages will be ignored if the clients tags contain an ignored tag." +
+                "Default Ignored tags are\n\"tracker\",\n\"textonly\"");
+            await command.RespondAsync(string.Join("\n", Print));
         }
     }
 }

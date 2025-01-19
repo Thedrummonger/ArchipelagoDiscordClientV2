@@ -11,7 +11,6 @@ namespace ArchipelagoDiscordClientLegacy.Data
     {
         public class DiscordBot
         {
-            public bool BotIsLive = false;
             public Dictionary<ulong, ActiveBotSession> ActiveSessions = [];
             public Dictionary<ulong, SessionConstructor> ConnectionCache = [];
             public AppSettings appSettings;
@@ -30,16 +29,21 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 Client = new DiscordSocketClient(DiscordSocketConfig);
             }
 
-            private DiscordSocketClient? Client;
-            public DiscordSocketClient GetClient()
-            {
-                if (Client == null) { throw new InvalidOperationException("Can't get client before Client is Initialized"); }
-                return Client;
-            }
+            public DiscordSocketClient Client { get; private set; }
             public async Task Start()
             {
                 await Client!.LoginAsync(TokenType.Bot, appSettings.BotToken.Trim());
                 await Client.StartAsync();
+            }
+            public void UpdateConnectionCache(ulong ChannelID, SessionConstructor NewCachedSession)
+            {
+                ConnectionCache[ChannelID] = NewCachedSession;
+                UpdateConnectionCache();
+            }
+            public void UpdateConnectionCache(ulong ChannelID, SessionSetting UpdatedSettings)
+            {
+                ConnectionCache[ChannelID].Settings = UpdatedSettings;
+                UpdateConnectionCache();
             }
             public void UpdateConnectionCache()
             {

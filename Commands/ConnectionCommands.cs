@@ -97,10 +97,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
+                await command.RespondAsync("Disconnecting from the Archipelago server.");
 
                 await archipelagoConnectionHelpers.CleanAndCloseChannel(discordBot, Data.channelId);
 
-                await command.RespondAsync("Successfully disconnected from the Archipelago server.");
+                await command.ModifyOriginalResponseAsync(x => x.Content = "Successfully disconnected from the Archipelago server.");
             }
         }
 

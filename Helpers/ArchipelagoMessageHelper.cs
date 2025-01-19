@@ -19,39 +19,34 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             HashSet<ulong> GetItemSendPings(ItemSendLogMessage itemSendMessage)
             {
                 HashSet<ulong> ToPing = [];
+                //Only ping for Progression Items
                 if (!itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)) return [];
+                //If a player sends an item to themselves, no need to notify
                 if (itemSendMessage.Receiver.Slot == itemSendMessage.Sender.Slot) return [];
-                foreach (var i in session.Settings.SlotAssociations)
-                {
-                    if (!i.Value.Contains(itemSendMessage.Receiver.Name)) { continue; }
-                    if (i.Value.Contains(itemSendMessage.Sender.Name)) { continue; } //Same player, different slot
-                    ToPing.Add(i.Key);
-                }
-                return ToPing;
+                //Get all discord users associated with the recieving slot
+                var receiverAssociations = session.Settings.SlotAssociations.Where(kvp => kvp.Value.Contains(itemSendMessage.Receiver.Name));
+                //If the receiver and sender slot are associated with the same discord user, no need to notify
+                var validAssociations = receiverAssociations.Where(kvp => !kvp.Value.Contains(itemSendMessage.Sender.Name));
+                return validAssociations.Select(kvp => kvp.Key).ToHashSet();
             }
             HashSet<ulong> GetHintPing(HintItemSendLogMessage hintItemSendLog)
             {
                 HashSet<ulong> ToPing = [];
-                if (hintItemSendLog.Receiver.Slot == hintItemSendLog.Sender.Slot) return [];
+                //Only ping for Items that have not been found
                 if (hintItemSendLog.IsFound) return [];
-                foreach (var i in session.Settings.SlotAssociations)
-                {
-                    if (!i.Value.Contains(hintItemSendLog.Sender.Name)) { continue; }
-                    if (i.Value.Contains(hintItemSendLog.Receiver.Name)) { continue; } //Same player, different slot
-                    ToPing.Add(i.Key);
-                }
-                return ToPing;
+                //If a player sends an item to themselves, no need to notify
+                if (hintItemSendLog.Receiver.Slot == hintItemSendLog.Sender.Slot) return [];
+                //Get all discord users associated with sending slot
+                var senderAssociations = session.Settings.SlotAssociations.Where(kvp => kvp.Value.Contains(hintItemSendLog.Sender.Name));
+                //If the receiver and sender slot are associated with the same player, no need to notify that player
+                var finalAssociations = senderAssociations.Where(kvp => !kvp.Value.Contains(hintItemSendLog.Receiver.Name));
+                return finalAssociations.Select(kvp => kvp.Key).ToHashSet();
             }
 
         }
         public static string ColorLogMessage(this LogMessage message)
         {
-            StringBuilder FormattedMessage = new StringBuilder();
-            foreach (var part in message.Parts)
-            {
-                FormattedMessage.Append(part.Text.SetColor(part.Color));
-            }
-            return FormattedMessage.ToString();
+            return string.Concat(message.Parts.Select(part => part.Text.SetColor(part.Color)));
         }
 
         public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session)
@@ -63,6 +58,8 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
         public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session)
         {
+            if (string.IsNullOrWhiteSpace(logMessage.ToString())) 
+                return true;
             switch (logMessage)
             {
                 case ServerChatLogMessage:
@@ -125,27 +122,17 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         }
 
         //For some reason, LeaveLogMessage does not contain tags. For now we can extract the tags manually from the message.
-        public static string[] GetTags(this LeaveLogMessage Message)
+        public static HashSet<string> GetTags(this LeaveLogMessage Message)
         {
-            string MessageString = string.Join('\n', Message.Parts.Select(x => x.Text));
-
-            string TagPattern = @"\[(.*?)\]"; //Tags are defined in brackets
-            MatchCollection TagMatches = Regex.Matches(MessageString, TagPattern);
-            HashSet<string> tags = [];
-            if (TagMatches.Count > 0)
-            {
-                string lastMatch = TagMatches[^1].Groups[1].Value; //Tags are always at the end of a message
-                string[] parts = lastMatch.Split(',');             //I don't think any brackets would ever appear other than the tags
-                foreach (string part in parts)                     //but just pick the last instance of brackets to be safe
-                {
-                    string PartTrimmed = part.Trim();
-                    if (!PartTrimmed.StartsWith("'") || !PartTrimmed.EndsWith("'")) { continue; } //Probably more unnecessary checking
-                    string Tag = PartTrimmed[1..^1];                                              //But tags are always in single quotes
-                    tags.Add(Tag);
-                }
-            }
-
-            return [.. tags];
+            string messageString = string.Join('\n', Message.Parts.Select(x => x.Text));
+            //Tags should be in the last instance of brackets in the LeaveLogMessage
+            Match? match = Regex.Matches(messageString, @"\[(.*?)\]").LastOrDefault();
+            if (match is null) return [];
+            var rawTags = match.Groups[1].Value.TrimSplit(",");
+            //To my knowledge tags always are always in single quotes,
+            //if they are we need to remove those, but lets also handle if they aren't for some reason
+            var processedTags = rawTags.Select(part => part.StartsWith("'") && part.EndsWith("'") ? part[1..^1] : part);
+            return processedTags.ToHashSet();
         }
     }
 }

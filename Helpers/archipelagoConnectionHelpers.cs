@@ -34,7 +34,6 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
             void MessageLog_OnMessageReceived(LogMessage message)
             {
-                if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) return;
                 switch (message)
                 {
@@ -64,9 +63,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             };
             void MessageLog_OnMessageReceived(LogMessage message)
             {
-                if (string.IsNullOrWhiteSpace(message.ToString())) { return; }
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
-
                 var queuedMessage = new MessageQueueData.QueuedMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession));
                 botSession.QueueMessageForChannel(queuedMessage);
             }

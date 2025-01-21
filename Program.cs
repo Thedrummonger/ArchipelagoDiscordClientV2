@@ -45,6 +45,8 @@ namespace ArchipelagoDiscordClient
             //Run a background task to constantly process API requests
             _ = Task.Run(BotClient.DiscordAPIQueue.ProcessAPICalls);
 
+            _ = Task.Run(() => CheckServerConnection(BotClient));
+
             ConsoleCommandHandlers.RegisterCommands();
             ConsoleCommandHandlers.RunUserInputLoop(BotClient);
 
@@ -66,6 +68,31 @@ namespace ArchipelagoDiscordClient
                 await Task.Delay(20);
             }
             botClient.DiscordAPIQueue.IsProcessing = false;
+        }
+
+        private async Task CheckServerConnection(DiscordBot discordBot)
+        {
+            Dictionary<ulong, int> FailureTracking = [];
+            while (true)
+            {
+                foreach (var i in discordBot.ActiveSessions)
+                {
+                    FailureTracking.SetIfEmpty(i.Key, 0);
+                    try
+                    {
+                        _ = i.Value.ArchipelagoSession.DataStorage.GetClientStatus();
+                        FailureTracking[i.Key] = 0;
+                    }
+                    catch { FailureTracking[i.Key]++; }
+
+                    if (FailureTracking[i.Key] >= 6)
+                    {
+                        await discordBot.CleanAndCloseChannel(i.Key);
+                        discordBot.QueueAPIAction(i.Value.DiscordChannel, $"Connection closed, Archipelago server unreachable");
+                    }
+                }
+                await Task.Delay(10000);
+            }
         }
     }
 }

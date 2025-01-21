@@ -51,7 +51,6 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// Creates the archipelago handlers for the main slot connection
         /// </summary>
         /// <param name="botSession"></param>
-        /// <param name="discordBot"></param>
         public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession)
         {
             botSession.ArchipelagoSession.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
@@ -59,7 +58,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             {
                 if (!botSession.ParentBot.ActiveSessions.ContainsKey(botSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
                 await CleanAndCloseChannel(botSession.ParentBot, botSession.DiscordChannel.Id);
-                botSession.QueueMessageForChannel($"Connection closed:\n{reason}");
+                botSession.ParentBot.QueueAPIAction(botSession.DiscordChannel, $"Connection closed:\n{reason}");
             };
             void MessageLog_OnMessageReceived(LogMessage message)
             {

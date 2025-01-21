@@ -18,17 +18,11 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public HashSet<ulong> UsersToPing;
         }
 
-        public static void QueueMessageForChannel(this Sessions.ActiveBotSession session, QueuedMessage Message)
-        {
+        public static void QueueMessageForChannel(this Sessions.ActiveBotSession session, QueuedMessage Message) =>
             session.MessageQueue.Queue.Enqueue(Message);
-        }
-        public static void QueueMessageForChannel(this Sessions.ActiveBotSession session, string Message)
-        {
+        public static void QueueMessageForChannel(this Sessions.ActiveBotSession session, string Message) =>
             session.QueueMessageForChannel(new QueuedMessage(Message));
-        }
-        public static void QueueAPIAction(this DiscordBot discordBot, ISocketMessageChannel channel, string Message)
-        {
+        public static void QueueAPIAction(this DiscordBot discordBot, ISocketMessageChannel channel, string Message) =>
             discordBot.DiscordAPIQueue.Queue.Enqueue(new(channel, Message));
-        }
     }
 }

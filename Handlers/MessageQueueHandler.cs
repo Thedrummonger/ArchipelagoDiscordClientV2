@@ -8,7 +8,6 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         private static readonly Tuple<string, string> Formatter = new("```ansi\n", "\n```");
         private static readonly string LineSeparator = "\n\n";
         private static readonly int DiscordMessageLimit = 2000;
-        private static readonly int DiscordChannelMessageRateLimit = 500; //Only 2 messages a second are allowed per channel
         public Queue<MessageQueueData.QueuedMessage> Queue = [];
         public async Task ProcessChannelMessages()
         {
@@ -38,7 +37,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 var finalMessage = GetFinalMessage(messageBatch, pingBatch);
                 discordBot.QueueAPIAction(ChannelSession.DiscordChannel, finalMessage);
 
-                await Task.Delay(DiscordChannelMessageRateLimit);
+                await Task.Delay(Constants.DiscordRateLimits.SendMessage);
             }
         }
 
@@ -51,7 +50,6 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
     public class BotAPIRequestQueue
     {
         public bool IsProcessing = true;
-        private static readonly int DiscordAPIRequestRateLimit = 20; //Only 50 api calls per second are allowed globally for the bot
         public Queue<(ISocketMessageChannel channel, string message)> Queue = [];
         public async Task ProcessAPICalls()
         {
@@ -60,9 +58,12 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 if (Queue.Count > 0)
                 {
                     var (channel, message) = Queue.Dequeue();
+                    if (channel is null || message is null) continue;
                     _ = channel.SendMessageAsync(message);
+                    await Task.Delay(Constants.DiscordRateLimits.APICalls);
                 }
-                await Task.Delay(DiscordAPIRequestRateLimit);
+                else
+                    await Task.Delay(500);
             }
         }
     }

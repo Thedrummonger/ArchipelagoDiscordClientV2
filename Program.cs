@@ -11,11 +11,10 @@ namespace ArchipelagoDiscordClient
     {
         static async Task Main(string[] args)
         {
-            var program = new Program();
-            await program.RunBotAsync();
+            await RunBotAsync();
         }
 
-        public async Task RunBotAsync()
+        public static async Task RunBotAsync()
         {
             if (!Path.Exists(Constants.Paths.BaseFilePath)) { Directory.CreateDirectory(Constants.Paths.BaseFilePath); }
             var Config = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConfigFile, new AppSettings(), true);
@@ -27,9 +26,10 @@ namespace ArchipelagoDiscordClient
                 File.WriteAllText(Constants.Paths.ConfigFile, Config.ToFormattedJson());
             }
             if (Config.BotToken.IsNullOrWhiteSpace()) { throw new Exception($"Bot key not valid"); }
-            DiscordBot BotClient = new DiscordBot(Config);
-
-            BotClient.ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionConstructor>(), true);
+            DiscordBot BotClient = new(Config)
+            {
+                ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionConstructor>(), true)
+            };
 
             BotClient.Client.Ready += BotClient.commandRegistry.Initialize;
             BotClient.Client.SlashCommandExecuted += BotClient.CommandHandler.HandleSlashCommand;
@@ -45,54 +45,16 @@ namespace ArchipelagoDiscordClient
             //Run a background task to constantly process API requests
             _ = Task.Run(BotClient.DiscordAPIQueue.ProcessAPICalls);
 
-            _ = Task.Run(() => CheckServerConnection(BotClient));
+            //Run a background loop to monitor server connections and clean up any closed or abandoned server connections
+            _ = Task.Run(BotClient.SessionDisconnectionHandler);
 
             ConsoleCommandHandlers.RegisterCommands();
+
+            //Allow for console commands, this loop will not exit unless the exit command is entered
             ConsoleCommandHandlers.RunUserInputLoop(BotClient);
 
-            await DisconnectAllClients(BotClient);
-        }
-
-        private async Task DisconnectAllClients(DiscordBot botClient)
-        {
-            Console.WriteLine("Disconnecting all clients...");
-            foreach (var session in botClient.ActiveSessions.Values)
-            {
-                Console.WriteLine(session.DiscordChannel.Name);
-                await archipelagoConnectionHelpers.CleanAndCloseChannel(botClient, session.DiscordChannel.Id);
-                botClient.QueueAPIAction(session.DiscordChannel, $"Connection closed, Bot has exited.");
-            }
-            Console.WriteLine("Waiting for Queue to clear...");
-            while (botClient.DiscordAPIQueue.Queue.Count > 0)
-            {
-                await Task.Delay(20);
-            }
-            botClient.DiscordAPIQueue.IsProcessing = false;
-        }
-
-        private async Task CheckServerConnection(DiscordBot discordBot)
-        {
-            Dictionary<ulong, int> FailureTracking = [];
-            while (true)
-            {
-                foreach (var i in discordBot.ActiveSessions)
-                {
-                    FailureTracking.SetIfEmpty(i.Key, 0);
-                    try
-                    {
-                        _ = i.Value.ArchipelagoSession.DataStorage.GetClientStatus();
-                        FailureTracking[i.Key] = 0;
-                    }
-                    catch { FailureTracking[i.Key]++; }
-
-                    if (FailureTracking[i.Key] >= 6)
-                    {
-                        await discordBot.CleanAndCloseChannel(i.Key);
-                        discordBot.QueueAPIAction(i.Value.DiscordChannel, $"Connection closed, Archipelago server unreachable");
-                    }
-                }
-                await Task.Delay(10000);
-            }
+            //If the above loop does exit, gracefully close all connections
+            await BotClient.DisconnectAllClients();
         }
     }
 }

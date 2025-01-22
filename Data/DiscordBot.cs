@@ -2,6 +2,7 @@
 using ArchipelagoDiscordClientLegacy.Handlers;
 using Discord;
 using Discord.WebSocket;
+using System.Diagnostics;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
@@ -51,10 +52,14 @@ namespace ArchipelagoDiscordClientLegacy.Data
             }
         }
 
-        public static readonly DiscordSocketConfig DiscordSocketConfig = new DiscordSocketConfig
+        public static readonly DiscordSocketConfig DiscordSocketConfig = new()
         {
-            LogLevel = LogSeverity.Info,
-            GatewayIntents = GatewayIntents.All //I'm to lazy to figure out exactly what intents are needed, gimme all
+            LogLevel = Debugger.IsAttached ? LogSeverity.Debug : LogSeverity.Info,
+            GatewayIntents = GatewayIntents.GuildMessages |
+                            GatewayIntents.DirectMessages |
+                            GatewayIntents.Guilds |
+                            GatewayIntents.MessageContent |
+                            GatewayIntents.GuildIntegrations
         };
     }
 }

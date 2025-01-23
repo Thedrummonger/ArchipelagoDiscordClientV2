@@ -26,7 +26,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
-                await PrintSettings(command, session!);
+                var SessionCache = discordBot.ConnectionCache[Data.channelId];
+                var SettingString = $"```json\n{SessionCache.ToFormattedJson()}\n```";
+                await command.RespondAsync(SettingString);
             }
         }
 
@@ -80,11 +82,12 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await PrintHelp(command);
                     return;
                 }
-
-                ToggleSetting.ToggleSettings[(int)setting].Execute(ActiveSession!.Settings, value);
+                var SelectedToggleSetting = ToggleSetting.ToggleSettings[(int)setting];
+                SelectedToggleSetting.ToggleVal(ActiveSession!.Settings, value);
 
                 discordBot.UpdateConnectionCache(Data.channelId);
-                await PrintSettings(command, ActiveSession);
+
+                await command.RespondAsync($"Setting [{SelectedToggleSetting.Key}] set to [{SelectedToggleSetting.GetVal}]");
             }
         }
 
@@ -115,19 +118,21 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
                 var value = Data.GetArg("tags")?.GetValue<string?>() ?? "";
                 var values = value.TrimSplit(",").Select(x => x.Trim().ToLower()).ToHashSet();
+                string ActionResult;
                 if (action == (int)CommandHelpers.AddRemoveAction.add)
+                {
                     ActiveSession!.Settings.IgnoreTags.UnionWith(values);
+                    ActionResult = $"Added [{string.Join(", ", values)}] to the ignore list";
+                }
                 else
+                {
                     ActiveSession!.Settings.IgnoreTags.ExceptWith(values);
+                    ActionResult = $"Removed [{string.Join(", ", values)}] from the ignore list";
+                }
 
                 discordBot.UpdateConnectionCache(Data.channelId);
-                await PrintSettings(command, ActiveSession);
+                await command.RespondAsync(ActionResult);
             }
-        }
-
-        private static async Task PrintSettings(SocketSlashCommand command, Sessions.ActiveBotSession Session)
-        {
-            await command.RespondAsync($"```json\n{Session.Settings.ToFormattedJson()}\n```");
         }
 
         private static async Task PrintHelp(SocketSlashCommand command)

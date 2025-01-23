@@ -83,7 +83,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 ToggleSetting.ToggleSettings[(int)setting].Execute(ActiveSession!.Settings, value);
 
-                discordBot.UpdateConnectionCache(Data.channelId, ActiveSession.Settings);
+                discordBot.UpdateConnectionCache(Data.channelId);
                 await PrintSettings(command, ActiveSession);
             }
         }
@@ -120,7 +120,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 else
                     ActiveSession!.Settings.IgnoreTags.ExceptWith(values);
 
-                discordBot.UpdateConnectionCache(Data.channelId, ActiveSession!.Settings);
+                discordBot.UpdateConnectionCache(Data.channelId);
                 await PrintSettings(command, ActiveSession);
             }
         }

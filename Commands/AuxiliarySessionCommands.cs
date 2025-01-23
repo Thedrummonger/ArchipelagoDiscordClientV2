@@ -41,6 +41,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 else
                     await Remove(command, discordBot, commandData, session!);
 
+                discordBot.UpdateConnectionCache(commandData.channelId);
+
             }
 
             async Task Add(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot, CommandData.CommandDataModel commandData, ActiveBotSession session)

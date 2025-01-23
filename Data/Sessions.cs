@@ -40,6 +40,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
         {
             public ArchipelagoConnectionInfo? ArchipelagoConnectionInfo { get; set; }
             public SessionSetting? Settings { get; set; }
+            public HashSet<string> AuxiliarySessions { get; set; } = [];
         }
     }
 }

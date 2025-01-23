@@ -41,15 +41,15 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 ConnectionCache[ChannelID] = NewCachedSession;
                 UpdateConnectionCache();
             }
-            public void UpdateConnectionCache(ulong ChannelID, SessionSetting UpdatedSettings)
+            public void UpdateConnectionCache(ulong ChannelID)
             {
-                ConnectionCache[ChannelID].Settings = UpdatedSettings;
+                var ActiveSession = ActiveSessions[ChannelID];
+                var CachedSession = ConnectionCache[ChannelID];
+                CachedSession.Settings = ActiveSession.Settings;
+                CachedSession.AuxiliarySessions = [.. ActiveSession.AuxiliarySessions.Keys];
                 UpdateConnectionCache();
             }
-            public void UpdateConnectionCache()
-            {
-                File.WriteAllText(Constants.Paths.ConnectionCache, ConnectionCache.ToFormattedJson());
-            }
+            private void UpdateConnectionCache() => File.WriteAllText(Constants.Paths.ConnectionCache, ConnectionCache.ToFormattedJson());
         }
 
         public static readonly DiscordSocketConfig DiscordSocketConfig = new()

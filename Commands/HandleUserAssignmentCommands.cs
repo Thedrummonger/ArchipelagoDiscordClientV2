@@ -38,6 +38,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await Add(command, discordBot, commandData, session!);
                 else
                     await Remove(command, discordBot, commandData, session!);
+
+                discordBot.UpdateConnectionCache(commandData.channelId);
             }
 
             async Task Add(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel commandData, Sessions.ActiveBotSession session)
@@ -79,7 +81,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     ..invalidPlayers.CreateResultList($"The following players were not valid players in archipelago"),
                     ];
 
-                discordBot.UpdateConnectionCache(data.channelId, activeSession.Settings);
                 await command.RespondAsync(string.Join("\n", messageParts));
             }
             async Task Remove(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel commandData, Sessions.ActiveBotSession session)
@@ -125,7 +126,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     ..invalidRemovals.CreateResultList($"The following players were not associated with {user!.Username}")
                     ];
 
-                discordBot.UpdateConnectionCache(data.channelId, activeSession.Settings);
                 await command.RespondAsync(string.Join("\n", MessageParts));
             }
         }

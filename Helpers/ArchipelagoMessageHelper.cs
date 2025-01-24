@@ -22,7 +22,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 if (!itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)) return [];
                 //If a player sends an item to themselves, no need to notify
                 if (itemSendMessage.Receiver.Slot == itemSendMessage.Sender.Slot) return [];
-                //Get all discord users associated with the recieving slot
+                //Get all discord users associated with the receiving slot
                 var receiverAssociations = session.Settings.SlotAssociations.Where(kvp => kvp.Value.Contains(itemSendMessage.Receiver.Name));
                 //If the receiver and sender slot are associated with the same discord user, no need to notify
                 var validAssociations = receiverAssociations.Where(kvp => !kvp.Value.Contains(itemSendMessage.Sender.Name));
@@ -50,8 +50,9 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
         public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session)
         {
+            //Get all slots that are actively listening for hint messages in this channel.
             HashSet<string> listeningPlayers = [.. session.AuxiliarySessions.Keys, session.ArchipelagoSession.Players.ActivePlayer.Name];
-            // True if the active player is the receiver OR if the receiver is not in the active set
+            //True if the active player is the receiver OR if the receiver is not actively listening for hint messages in this channel.
             return hintLogMessage.IsReceiverTheActivePlayer || !listeningPlayers.Contains(hintLogMessage.Receiver.Name);
         }
 

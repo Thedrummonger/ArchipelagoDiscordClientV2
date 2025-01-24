@@ -9,6 +9,7 @@ namespace ArchipelagoDiscordClient
 {
     class Program
     {
+        public static bool ShowHeartbeat = false;
         static async Task Main(string[] args)
         {
             await RunBotAsync();

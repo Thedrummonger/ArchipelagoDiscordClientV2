@@ -26,7 +26,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 CommandHandler = new SlashCommandHandlers(this);
                 commandRegistry = new CommandRegistry(this);
                 DiscordMessageHandler = new DiscordMessageHandlers(this);
-                DiscordAPIQueue = new BotAPIRequestQueue();
+                DiscordAPIQueue = new BotAPIRequestQueue(this);
                 Client = new DiscordSocketClient(DiscordSocketConfig);
             }
 

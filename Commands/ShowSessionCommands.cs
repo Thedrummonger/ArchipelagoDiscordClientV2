@@ -47,8 +47,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     foreach (var session in ActiveSession.AuxiliarySessions)
                     {
                         response +=
-                            $"- **Player**: {APSession.Players.ActivePlayer.Name}[SLOT:{APSession.ConnectionInfo.Slot}]\n" +
-                            $"  **Game**: {APSession.Players.ActivePlayer.Game}\n\n";
+                            $"- **Player**: {session.Value.Players.ActivePlayer.Name}[SLOT:{session.Value.ConnectionInfo.Slot}]\n" +
+                            $"  **Game**: {session.Value.Players.ActivePlayer.Game}\n";
                     }
                 }
 

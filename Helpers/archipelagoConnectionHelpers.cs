@@ -106,6 +106,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 await Task.Delay(20);
             }
             botClient.DiscordAPIQueue.IsProcessing = false;
+            await Task.Delay(2000);
         }
     }
 }

@@ -22,6 +22,8 @@
             public static readonly int EditBotUsername = 1800000;
             public static readonly int UpdateChannel = 300000;
             public static readonly int APICalls = 20;
+
+            public static readonly int IdleDelay = 1000;
         }
     }
 }

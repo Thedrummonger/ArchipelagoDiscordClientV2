@@ -28,7 +28,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
                 var SessionCache = discordBot.ConnectionCache[Data.channelId];
                 var SettingString = $"```json\n{SessionCache.ToFormattedJson()}\n```";
-                await command.RespondAsync(SettingString);
+                await command.RespondAsync(SettingString, ephemeral: true);
             }
         }
 

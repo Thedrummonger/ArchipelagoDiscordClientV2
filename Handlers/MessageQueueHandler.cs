@@ -1,5 +1,9 @@
-﻿using ArchipelagoDiscordClientLegacy.Data;
+﻿using ArchipelagoDiscordClient;
+using ArchipelagoDiscordClientLegacy.Data;
+using Discord.Net;
 using Discord.WebSocket;
+using System.Net.WebSockets;
+using TDMUtils;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
@@ -13,32 +17,43 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         {
             while (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
             {
+                if (Program.ShowHeartbeat) { Console.WriteLine($"Message Queue Heartbeat: {ChannelSession.DiscordChannel.Id}"); }
                 if (Queue.Count == 0)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(Constants.DiscordRateLimits.IdleDelay);
                     continue;
                 }
                 var messageBatch = new List<string>();
                 var pingBatch = new HashSet<ulong>();
-
-                while (Queue.Count > 0)
+                try
                 {
-                    var nextItem = Queue.Peek();
-                    var simulatedMessage = GetFinalMessage([.. messageBatch, nextItem.Message], [.. pingBatch, .. nextItem.UsersToPing]);
-                    if (simulatedMessage.Length > DiscordMessageLimit)
-                        break;
+                    while (Queue.Count > 0)
+                    {
+                        var nextItem = Queue.Peek();
+                        var simulatedMessage = GetFinalMessage([.. messageBatch, nextItem.Message], [.. pingBatch, .. nextItem.UsersToPing]);
+                        if (simulatedMessage.Length > DiscordMessageLimit)
+                            break;
 
-                    Queue.Dequeue();
-                    messageBatch.Add(nextItem.Message);
-                    foreach (var userId in nextItem.UsersToPing)
-                        pingBatch.Add(userId);
+                        Queue.Dequeue();
+                        messageBatch.Add(nextItem.Message);
+                        foreach (var userId in nextItem.UsersToPing)
+                            pingBatch.Add(userId);
+                    }
+
+                    var finalMessage = GetFinalMessage(messageBatch, pingBatch);
+                    discordBot.QueueAPIAction(ChannelSession.DiscordChannel, finalMessage);
                 }
-
-                var finalMessage = GetFinalMessage(messageBatch, pingBatch);
-                discordBot.QueueAPIAction(ChannelSession.DiscordChannel, finalMessage);
+                catch (Exception ex) 
+                {
+                    Console.WriteLine($"Error Queueing message for channel: {ChannelSession.DiscordChannel.Id}\n{ChannelSession.ConnectionInfo.ToFormattedJson()}\n{ex}");
+                }
 
                 await Task.Delay(Constants.DiscordRateLimits.SendMessage);
             }
+            Console.WriteLine($"Exited Message Queue for {ChannelSession.DiscordChannel.Id}");
+            if (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
+                Console.WriteLine($"This was NOT intentional");
+
         }
 
         private static string GetFinalMessage(List<string> sendBatch, HashSet<ulong> toPing) =>
@@ -47,7 +62,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         private static string CreatePingString(HashSet<ulong> toPing) =>
             string.Join("", toPing.Select(user => $"<@{user}>"));
     }
-    public class BotAPIRequestQueue
+    public class BotAPIRequestQueue(DiscordBotData.DiscordBot discordBot)
     {
         public bool IsProcessing = true;
         public Queue<(ISocketMessageChannel channel, string message)> Queue = [];
@@ -55,16 +70,42 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         {
             while (IsProcessing)
             {
-                if (Queue.Count > 0)
+                if (Program.ShowHeartbeat) { Console.WriteLine($"Master API Queue Heartbeat"); }
+                if (Queue.Count == 0 || discordBot.Client.ConnectionState != Discord.ConnectionState.Connected)
+                {
+                    await Task.Delay(Constants.DiscordRateLimits.IdleDelay);
+                    continue;
+                }
+                try
                 {
                     var (channel, message) = Queue.Dequeue();
                     if (channel is null || message is null) continue;
                     _ = channel.SendMessageAsync(message);
-                    await Task.Delay(Constants.DiscordRateLimits.APICalls);
                 }
-                else
-                    await Task.Delay(500);
+                catch (Exception ex)
+                {
+                    switch (ex)
+                    {
+                        case HttpException httpEx:
+                            Console.WriteLine($"Http Exception while processing API request\n{httpEx}");
+                            break;
+                        case RateLimitedException rateLimitedEx:
+                            Console.WriteLine($"Rate Limited Exception while processing API request\n{rateLimitedEx}");
+                            break;
+                        case WebSocketException wsEx:
+                            Console.WriteLine($"WebSocket Exception while processing API request\n{wsEx}");
+                            break;
+                        case TaskCanceledException tcEx:
+                            Console.WriteLine($"Task Canceled while processing API request\n{tcEx}");
+                            break;
+                        default:
+                            Console.WriteLine($"Rate Limit error while processing API request\n{ex}");
+                            break;
+                    }
+                }
+                await Task.Delay(Constants.DiscordRateLimits.APICalls);
             }
+            Console.WriteLine($"Exited Global API Processing Queue");
         }
     }
 }

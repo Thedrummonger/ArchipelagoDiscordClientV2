@@ -2,6 +2,8 @@
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
+using System.ComponentModel;
+using System.Reflection;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
@@ -45,12 +47,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                             .WithDescription("Select a setting to toggle")
                             .WithRequired(true)
                             .WithType(ApplicationCommandOptionType.Integer);
-                    for (int index = 0; index < ToggleSetting.ToggleSettings.Length; index++)
+                    var ToggleSettings = SessionSetting.GetToggleSettings();
+                    for (int index = 0; index < ToggleSettings.Length; index++)
                     {
-                        var value = ToggleSetting.ToggleSettings[index];
-                        optionBuilder.AddChoice(value.Key, index);
+                        var value = ToggleSettings[index];
+                        optionBuilder.AddChoice(value.Name, index);
                     }
-                    optionBuilder.AddChoice("help", ToggleSetting.ToggleSettings.Length);
+                    optionBuilder.AddChoice("help", ToggleSettings.Length);
                     return new SlashCommandBuilder()
                         .WithName(Name)
                         .WithDescription("Toggle the selected setting for this session")
@@ -71,23 +74,20 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var setting = (Data.GetArg("setting")?.GetValue<long>());
                 var value = Data.GetArg("value")?.GetValue<bool?>();
 
-                if (setting is null || setting < 0 || setting > ToggleSetting.ToggleSettings.Length)
-                {
-                    await command.RespondAsync("Invalid Option", ephemeral: true);
-                    return;
-                }
+                SettingsManager settingsManager = new(ActiveSession!.Settings);
 
-                if (setting == ToggleSetting.ToggleSettings.Length)
+                var selectedSetting = settingsManager.GetSetting(setting);
+
+                if (selectedSetting is null)
                 {
                     await PrintHelp(command);
                     return;
                 }
-                var SelectedToggleSetting = ToggleSetting.ToggleSettings[(int)setting];
-                SelectedToggleSetting.ToggleVal(ActiveSession!.Settings, value);
+                selectedSetting.Value = value ?? !selectedSetting.Value;
 
                 discordBot.UpdateConnectionCache(Data.channelId);
 
-                await command.RespondAsync($"Setting [{SelectedToggleSetting.Key}] set to [{SelectedToggleSetting.GetVal}]");
+                await command.RespondAsync($"Setting [{selectedSetting.DisplayName}] set to [{selectedSetting.Value}]");
             }
         }
 
@@ -137,7 +137,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
         private static async Task PrintHelp(SocketSlashCommand command)
         {
-            List<string> Print = ToggleSetting.ToggleSettings.Select(x => $"{x.Key}: {x.Description}").ToList();
+            List<string> Print = [];
+            var properties = SessionSetting.GetToggleSettings();
+            foreach (var property in properties)
+            {
+                var descriptionAttribute = property.GetCustomAttribute<DescriptionAttribute>();
+                string description = descriptionAttribute?.Description ?? "No description available";
+                Print.Add($"{property.Name}: {description}");
+            }
             Print.Add("edit_ignored_tags: connect/disconnect messages will be ignored if the clients tags contain an ignored tag." +
                 "Default Ignored tags are\n\"tracker\",\n\"textonly\"");
             await command.RespondAsync(string.Join("\n", Print));

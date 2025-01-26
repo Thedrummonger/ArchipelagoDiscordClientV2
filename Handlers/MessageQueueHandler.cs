@@ -1,9 +1,12 @@
 ﻿using ArchipelagoDiscordClient;
 using ArchipelagoDiscordClientLegacy.Data;
+using Discord;
 using Discord.Net;
 using Discord.WebSocket;
+using System.Net.NetworkInformation;
 using System.Net.WebSockets;
 using TDMUtils;
+using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
@@ -11,7 +14,6 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
     {
         private static readonly Tuple<string, string> Formatter = new("```ansi\n", "\n```");
         private static readonly string LineSeparator = "\n\n";
-        private static readonly int DiscordMessageLimit = 2000;
         public Queue<MessageQueueData.QueuedMessage> Queue = [];
         public async Task ProcessChannelMessages()
         {
@@ -30,8 +32,8 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                     while (Queue.Count > 0)
                     {
                         var nextItem = Queue.Peek();
-                        var simulatedMessage = GetFinalMessage([.. messageBatch, nextItem.Message], [.. pingBatch, .. nextItem.UsersToPing]);
-                        if (simulatedMessage.Length > DiscordMessageLimit)
+                        var simulatedMessage = GetFinalMessage([.. messageBatch, nextItem.Message]);
+                        if (simulatedMessage.Length > Constants.DiscordRateLimits.DiscordEmbedMessageLimit)
                             break;
 
                         Queue.Dequeue();
@@ -40,8 +42,10 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                             pingBatch.Add(userId);
                     }
 
-                    var finalMessage = GetFinalMessage(messageBatch, pingBatch);
-                    discordBot.QueueAPIAction(ChannelSession.DiscordChannel, finalMessage);
+                    var finalMessage = GetFinalMessage(messageBatch);
+                    Console.WriteLine(finalMessage.Length);
+                    QueuedAPIMessage queuedAPIMessage = new(CreatePingString(pingBatch), finalMessage);
+                    discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedAPIMessage);
                 }
                 catch (Exception ex) 
                 {
@@ -56,8 +60,8 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 
         }
 
-        private static string GetFinalMessage(List<string> sendBatch, HashSet<ulong> toPing) =>
-            $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}{CreatePingString(toPing)}";
+        private static string GetFinalMessage(List<string> sendBatch) =>
+            $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}";
 
         private static string CreatePingString(HashSet<ulong> toPing) =>
             string.Join("", toPing.Select(user => $"<@{user}>"));
@@ -65,47 +69,56 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
     public class BotAPIRequestQueue(DiscordBotData.DiscordBot discordBot)
     {
         public bool IsProcessing = true;
-        public Queue<(ISocketMessageChannel channel, string message)> Queue = [];
+        public Queue<(ISocketMessageChannel channel, IQueuedAPIAction Action)> Queue = [];
         public async Task ProcessAPICalls()
         {
             while (IsProcessing)
             {
                 if (Program.ShowHeartbeat) { Console.WriteLine($"Master API Queue Heartbeat"); }
-                if (Queue.Count == 0 || discordBot.Client.ConnectionState != Discord.ConnectionState.Connected)
+                if (Queue.Count == 0 || discordBot.Client.ConnectionState != ConnectionState.Connected)
                 {
                     await Task.Delay(Constants.DiscordRateLimits.IdleDelay);
                     continue;
                 }
                 try
                 {
-                    var (channel, message) = Queue.Dequeue();
-                    if (channel is null || message is null) continue;
-                    _ = channel.SendMessageAsync(message);
-                }
-                catch (Exception ex)
-                {
-                    switch (ex)
+                    var (channel, action) = Queue.Dequeue();
+                    if (channel is null || action is null) continue;
+
+                    switch (action)
                     {
-                        case HttpException httpEx:
-                            Console.WriteLine($"Http Exception while processing API request\n{httpEx}");
-                            break;
-                        case RateLimitedException rateLimitedEx:
-                            Console.WriteLine($"Rate Limited Exception while processing API request\n{rateLimitedEx}");
-                            break;
-                        case WebSocketException wsEx:
-                            Console.WriteLine($"WebSocket Exception while processing API request\n{wsEx}");
-                            break;
-                        case TaskCanceledException tcEx:
-                            Console.WriteLine($"Task Canceled while processing API request\n{tcEx}");
-                            break;
-                        default:
-                            Console.WriteLine($"Rate Limit error while processing API request\n{ex}");
+                        case QueuedAPIMessage messageAction:
+                            _ = channel.SendMessageAsync(messageAction.Message, embed: messageAction.Embed);
                             break;
                     }
+
                 }
+                catch (Exception ex) { LogException(ex); }
                 await Task.Delay(Constants.DiscordRateLimits.APICalls);
             }
             Console.WriteLine($"Exited Global API Processing Queue");
+        }
+
+        private static void LogException(Exception ex)
+        {
+            switch (ex)
+            {
+                case HttpException httpEx:
+                    Console.WriteLine($"Http Exception while processing API request\n{httpEx}");
+                    break;
+                case RateLimitedException rateLimitedEx:
+                    Console.WriteLine($"Rate Limited Exception while processing API request\n{rateLimitedEx}");
+                    break;
+                case WebSocketException wsEx:
+                    Console.WriteLine($"WebSocket Exception while processing API request\n{wsEx}");
+                    break;
+                case TaskCanceledException tcEx:
+                    Console.WriteLine($"Task Canceled while processing API request\n{tcEx}");
+                    break;
+                default:
+                    Console.WriteLine($"error while processing API request\n{ex}");
+                    break;
+            }
         }
     }
 }

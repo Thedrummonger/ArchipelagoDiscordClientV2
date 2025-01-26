@@ -94,7 +94,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 await command.RespondAsync($"Hints for {TargetPlayer.Name} playing {TargetPlayer.Game}", ephemeral: false);
                 foreach (var i in Messages)
                 {
-                    Console.WriteLine($"Queueing {i.Message}");
                     session.QueueMessageForChannel(i);
                 }
             }

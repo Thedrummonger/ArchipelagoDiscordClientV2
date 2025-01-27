@@ -28,14 +28,20 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 
                 switch (Queue.Peek())
                 {
-                    case QueuedLogMessage:
-                        var queuedLogMessage = (QueuedLogMessage)Queue.Dequeue();
-                        var QueuedAPIMessage = new QueuedAPIMessage(queuedLogMessage.Embed, queuedLogMessage.Message);
-                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, QueuedAPIMessage);
+                    case QueuedMessage queuedMessage:
+                        Queue.Dequeue();
+                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedMessage);
                         break;
 
-                    case QueuedItemLogMessage queuedItemLogMessage:
-                        CombineAndQueueItemLogMessages();
+                    case QueuedItemLogMessage:
+                        List<Embed> items = [];
+                        List<string> Set1 = GetMessagesForEmbed(Constants.DiscordRateLimits.DiscordEmbedMessageLimit, out var PingSet1);
+                        List<string> Set2 = GetMessagesForEmbed(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length, out var PingSet2);
+                        items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set1)).Build());
+                        if (Set2.Count > 0)
+                            items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set2)).Build());
+                        QueuedMessage queuedAPIMessage = new(items, CreatePingString([.. PingSet1, ..PingSet2]));
+                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedAPIMessage);
                         break;
                 }
 
@@ -47,35 +53,25 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 
         }
 
-        void CombineAndQueueItemLogMessages()
+        List<string> GetMessagesForEmbed(int CharLimit, out HashSet<ulong> UserPings)
         {
+            UserPings = [];
+            if (Queue.Count == 0) { return []; }
             var messageBatch = new List<string>();
-            var pingBatch = new HashSet<ulong>();
-            try
+            while (Queue.Count > 0)
             {
-                while (Queue.Count > 0)
-                {
-                    var nextItem = Queue.Peek();
-                    if (nextItem is not QueuedItemLogMessage NextItemLogMessage) break;
-                    var simulatedMessage = GetFinalMessage([.. messageBatch, NextItemLogMessage.Message]);
-                    if (simulatedMessage.Length > Constants.DiscordRateLimits.DiscordEmbedMessageLimit)
-                        break;
+                var nextItem = Queue.Peek();
+                if (nextItem is not QueuedItemLogMessage NextItemLogMessage) break;
+                var simulatedMessage = GetFinalMessage([.. messageBatch, NextItemLogMessage.Message]);
+                if (simulatedMessage.Length > CharLimit)
+                    break;
 
-                    Queue.Dequeue();
-                    messageBatch.Add(NextItemLogMessage.Message);
-                    foreach (var userId in NextItemLogMessage.UsersToPing)
-                        pingBatch.Add(userId);
-                }
-
-                var finalMessage = GetFinalMessage(messageBatch);
-                Console.WriteLine(finalMessage.Length);
-                QueuedAPIMessage queuedAPIMessage = new(CreatePingString(pingBatch), finalMessage);
-                discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedAPIMessage);
+                Queue.Dequeue();
+                messageBatch.Add(NextItemLogMessage.Message);
+                foreach (var userId in NextItemLogMessage.UsersToPing)
+                    UserPings.Add(userId);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error Queueing message for channel: {ChannelSession.DiscordChannel.Id}\n{ChannelSession.ConnectionInfo.ToFormattedJson()}\n{ex}");
-            }
+            return messageBatch;
         }
 
         private static string GetFinalMessage(List<string> sendBatch) =>
@@ -105,8 +101,8 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 
                     switch (action)
                     {
-                        case QueuedAPIMessage messageAction:
-                            _ = channel.SendMessageAsync(messageAction.Message, embed: messageAction.Embed);
+                        case QueuedMessage messageAction:
+                            _ = channel.SendMessageAsync(messageAction.Message, embeds: messageAction.Embeds);
                             break;
                     }
 

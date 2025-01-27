@@ -30,7 +30,8 @@
             public static readonly int IdleDelay = 1000;
 
             public static readonly int DiscordMessageLimit = 2000;
-            public static readonly int DiscordEmbedMessageLimit = 4096;
+            public static readonly int DiscordEmbedMessageLimit = 4000;
+            public static readonly int DiscordEmbedTotalLimit = 6000;
 
         }
     }

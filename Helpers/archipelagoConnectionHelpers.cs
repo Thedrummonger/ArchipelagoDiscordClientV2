@@ -64,7 +64,14 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 //I'll leave it in for now, but detecting server closing is currently done in the `CheckServerConnection` function
                 if (!botSession.ParentBot.ActiveSessions.ContainsKey(botSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
                 await CleanAndCloseChannel(botSession.ParentBot, botSession.DiscordChannel.Id);
-                botSession.ParentBot.QueueAPIAction(botSession.DiscordChannel, new MessageQueueData.QueuedAPIMessage(EmbedMessage: $"Connection closed:\n{reason}"));
+                var DisconnectEmbed = new EmbedBuilder()
+                    .WithColor(Color.Orange)
+                    .WithTitle("Session Disconnected")
+                    .WithFields(
+                        new EmbedFieldBuilder().WithName("Server").WithValue(botSession.ConnectionInfo.ToFormattedJson()),
+                        new EmbedFieldBuilder().WithName("Reason").WithValue("Archipelago server closed")
+                    );
+                botSession.ParentBot.QueueAPIAction(botSession.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
             };
             void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
             {
@@ -73,11 +80,11 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 MessageQueueData.IQueuedMessage queuedMessage = message switch
                 {
                     ItemSendLogMessage ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession)),
-                    JoinLogMessage JoinLogMessage => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Green)),
-                    LeaveLogMessage JoinLogMessage => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Red)),
-                    ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedLogMessage(message.ToString()),
-                    GoalLogMessage => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Gold)),
-                    _ => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(message.ToString())),
+                    JoinLogMessage JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Green)),
+                    LeaveLogMessage JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Red)),
+                    ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),
+                    GoalLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Gold)),
+                    _ => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString())),
                 };
                 botSession.QueueMessageForChannel(queuedMessage);
             }
@@ -101,7 +108,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                                 new EmbedFieldBuilder().WithName("Server").WithValue(session.ConnectionInfo.ToFormattedJson()),
                                 new EmbedFieldBuilder().WithName("Reason").WithValue("Archipelago server closed")
                             );
-                        discordBot.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedAPIMessage(EmbedMessage: DisconnectEmbed));
+                        discordBot.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
                     }
                 }
                 await Task.Delay(500);
@@ -122,7 +129,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                         new EmbedFieldBuilder().WithName("Server").WithValue(session.ConnectionInfo.ToFormattedJson()),
                         new EmbedFieldBuilder().WithName("Reason").WithValue("Bot has exited")
                     );
-                botClient.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedAPIMessage(EmbedMessage: DisconnectEmbed));
+                botClient.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
             }
             Console.WriteLine("Waiting for Queue to clear...");
             while (botClient.DiscordAPIQueue.Queue.Count > 0)

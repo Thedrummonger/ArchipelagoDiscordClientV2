@@ -43,7 +43,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
 
         }
-        public static string ColorLogMessage(this LogMessage message)
+        public static string ToColoredString(this LogMessage message)
         {
             return string.Concat(message.Parts.Select(part => part.Text.SetColor(part.Color)));
         }

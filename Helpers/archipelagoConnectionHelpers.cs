@@ -40,7 +40,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 switch (message)
                 {
                     case HintItemSendLogMessage hintItemSendLogMessage:
-                        var queuedMessage = new MessageQueueData.QueuedItemLogMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession));
+                        var queuedMessage = new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession));
                         botSession.QueueMessageForChannel(queuedMessage);
                         break;
                     case CommandResultLogMessage commandResultLogMessage:
@@ -80,7 +80,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
                 MessageQueueData.IQueuedMessage queuedMessage = message switch
                 {
-                    ItemSendLogMessage ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession)),
+                    ItemSendLogMessage ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
                     JoinLogMessage JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Green).Build()),
                     LeaveLogMessage JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Red).Build()),
                     ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),

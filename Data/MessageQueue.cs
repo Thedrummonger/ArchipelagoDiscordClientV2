@@ -11,7 +11,6 @@ namespace ArchipelagoDiscordClientLegacy.Data
         public class QueuedMessage(IEnumerable<Embed> embeds, string? message = null) : IQueuedMessage, IQueuedAPIAction
         {
             public QueuedMessage(string message) : this([], message) { }
-            public QueuedMessage(EmbedBuilder? embedBuilder, string? message = null) : this(embedBuilder?.Build(), message) { }
             public QueuedMessage(Embed? embed, string? message = null) : this(embed is null ? [] : [embed], message) { }
 
             public string? Message = message;

@@ -14,7 +14,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
     {
         private static readonly Tuple<string, string> Formatter = new("```ansi\n", "\n```");
         private static readonly string LineSeparator = "\n\n";
-        public Queue<MessageQueueData.QueuedMessage> Queue = [];
+        public Queue<IQueuedMessage> Queue = [];
         public async Task ProcessChannelMessages()
         {
             while (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
@@ -25,31 +25,18 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                     await Task.Delay(Constants.DiscordRateLimits.IdleDelay);
                     continue;
                 }
-                var messageBatch = new List<string>();
-                var pingBatch = new HashSet<ulong>();
-                try
-                {
-                    while (Queue.Count > 0)
-                    {
-                        var nextItem = Queue.Peek();
-                        var simulatedMessage = GetFinalMessage([.. messageBatch, nextItem.Message]);
-                        if (simulatedMessage.Length > Constants.DiscordRateLimits.DiscordEmbedMessageLimit)
-                            break;
 
-                        Queue.Dequeue();
-                        messageBatch.Add(nextItem.Message);
-                        foreach (var userId in nextItem.UsersToPing)
-                            pingBatch.Add(userId);
-                    }
-
-                    var finalMessage = GetFinalMessage(messageBatch);
-                    Console.WriteLine(finalMessage.Length);
-                    QueuedAPIMessage queuedAPIMessage = new(CreatePingString(pingBatch), finalMessage);
-                    discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedAPIMessage);
-                }
-                catch (Exception ex) 
+                switch (Queue.Peek())
                 {
-                    Console.WriteLine($"Error Queueing message for channel: {ChannelSession.DiscordChannel.Id}\n{ChannelSession.ConnectionInfo.ToFormattedJson()}\n{ex}");
+                    case QueuedLogMessage:
+                        var queuedLogMessage = (QueuedLogMessage)Queue.Dequeue();
+                        var QueuedAPIMessage = new QueuedAPIMessage(queuedLogMessage.Embed, queuedLogMessage.Message);
+                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, QueuedAPIMessage);
+                        break;
+
+                    case QueuedItemLogMessage queuedItemLogMessage:
+                        CombineAndQueueItemLogMessages();
+                        break;
                 }
 
                 await Task.Delay(Constants.DiscordRateLimits.SendMessage);
@@ -58,6 +45,37 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             if (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
                 Console.WriteLine($"This was NOT intentional");
 
+        }
+
+        void CombineAndQueueItemLogMessages()
+        {
+            var messageBatch = new List<string>();
+            var pingBatch = new HashSet<ulong>();
+            try
+            {
+                while (Queue.Count > 0)
+                {
+                    var nextItem = Queue.Peek();
+                    if (nextItem is not QueuedItemLogMessage NextItemLogMessage) break;
+                    var simulatedMessage = GetFinalMessage([.. messageBatch, NextItemLogMessage.Message]);
+                    if (simulatedMessage.Length > Constants.DiscordRateLimits.DiscordEmbedMessageLimit)
+                        break;
+
+                    Queue.Dequeue();
+                    messageBatch.Add(NextItemLogMessage.Message);
+                    foreach (var userId in NextItemLogMessage.UsersToPing)
+                        pingBatch.Add(userId);
+                }
+
+                var finalMessage = GetFinalMessage(messageBatch);
+                Console.WriteLine(finalMessage.Length);
+                QueuedAPIMessage queuedAPIMessage = new(CreatePingString(pingBatch), finalMessage);
+                discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedAPIMessage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error Queueing message for channel: {ChannelSession.DiscordChannel.Id}\n{ChannelSession.ConnectionInfo.ToFormattedJson()}\n{ex}");
+            }
         }
 
         private static string GetFinalMessage(List<string> sendBatch) =>

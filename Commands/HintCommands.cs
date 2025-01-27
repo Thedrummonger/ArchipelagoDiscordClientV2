@@ -48,7 +48,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 var hints = session.ArchipelagoSession.DataStorage.GetHints(TargetPlayer.Slot);
                 Console.WriteLine($"{hints.Length} Found");
-                List<QueuedMessage> Messages = [];
+                List<QueuedItemLogMessage> Messages = [];
                 foreach (var hint in hints)
                 {
                     if (filter is not null && hint.Found != filter) continue;
@@ -83,7 +83,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         ReceivingPlayerName.SetColor(ColorHelpers.Players.Other);
                     string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} {EntranceLine}({FoundString})";
 
-                    Messages.Add(new QueuedMessage(HintLine));
+                    Messages.Add(new QueuedItemLogMessage(HintLine));
                 }
                 if (Messages.Count < 1)
                 {

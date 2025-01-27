@@ -5,6 +5,7 @@ using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
@@ -66,13 +67,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             {
                 if (!command.Validate(discordBot, false, out CommandData.CommandDataModel Data, out string result))
                 {
-                    await command.RespondAsync(result, ephemeral: true);
+                    await command.RespondAsync(embed: new EmbedBuilder().WithDescription(result).WithColor(Color.Red).Build(), ephemeral: true);
                     return;
                 }
 
                 if (!discordBot.ConnectionCache.TryGetValue(Data.textChannel!.Id, out Sessions.SessionConstructor? connectionCache) || connectionCache is null)
                 {
-                    await command.RespondAsync("No previous connection cached for this channel", ephemeral: true);
+                    await command.RespondAsync(embed: new EmbedBuilder().WithDescription("No previous connection cached for this channel").WithColor(Color.Red).Build(), ephemeral: true);
                     return;
                 }
 
@@ -94,14 +95,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             {
                 if (!command.Validate(discordBot, true, out CommandData.CommandDataModel Data, out string result))
                 {
-                    await command.RespondAsync(result, ephemeral: true);
+                    await command.RespondAsync(embed: new EmbedBuilder().WithDescription(result).WithColor(Color.Red).Build(), ephemeral: true);
                     return;
                 }
-                await command.RespondAsync("Disconnecting from the Archipelago server.");
+                await command.RespondAsync(embed: new EmbedBuilder().WithDescription("Disconnecting from the Archipelago server.").Build());
 
                 await archipelagoConnectionHelpers.CleanAndCloseChannel(discordBot, Data.channelId);
 
-                await command.ModifyOriginalResponseAsync(x => x.Content = "Successfully disconnected from the Archipelago server.");
+                await command.ModifyOriginalResponseAsync(x => x.Embed = new EmbedBuilder()
+                    .WithDescription("Successfully disconnected from the Archipelago server.")
+                    .WithColor(Color.Orange).Build());
             }
         }
 
@@ -117,10 +120,10 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             {
                 var Data = command.GetCommandData();
 
-                await command.RespondAsync($"Connecting {Data.channelName} to " +
+                await command.RespondAsync(embed: new EmbedBuilder().WithDescription($"Connecting {Data.channelName} to " +
                     $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
                     $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}");
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}").Build());
 
                 // Create a new session
                 try
@@ -139,12 +142,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     if (result is LoginFailure failure)
                     {
                         var errors = string.Join("\n", failure.Errors);
-                        await command.ModifyOriginalResponseAsync(msg => msg.Content =
+                        await command.ModifyOriginalResponseAsync(msg => msg.Embed = new EmbedBuilder().WithDescription(
                             $"Failed to connect to Archipelago server at " +
                             $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
                             $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
                             $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
-                            $"{errors}");
+                            $"{errors}"
+                            ).WithColor(Color.Red).Build());
                         return;
                     }
 
@@ -163,15 +167,18 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Game}.";
 
                     Console.WriteLine(SuccessMessage);
-                    await command.ModifyOriginalResponseAsync(msg => msg.Content = SuccessMessage);
+                    await command.ModifyOriginalResponseAsync(msg => msg.Embed = new EmbedBuilder()
+                        .WithDescription(SuccessMessage).WithColor(Color.Green).Build());
                 }
                 catch (Exception ex)
                 {
-                    await command.ModifyOriginalResponseAsync(msg => msg.Content =
+                    await command.ModifyOriginalResponseAsync(msg => msg.Embed = new EmbedBuilder().WithDescription(
                         $"Failed to connect to Archipelago server at " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo.IP}:" +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo.Port} as " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo.Name}.\n{ex.Message}");
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
+                        $"{ex}"
+                        ).WithColor(Color.Red).Build());
                 }
             }
         }

@@ -40,7 +40,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 switch (message)
                 {
                     case HintItemSendLogMessage hintItemSendLogMessage:
-                        var queuedMessage = new MessageQueueData.QueuedMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession));
+                        var queuedMessage = new MessageQueueData.QueuedItemLogMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession));
                         botSession.QueueMessageForChannel(queuedMessage);
                         break;
                     case CommandResultLogMessage commandResultLogMessage:
@@ -69,7 +69,16 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
             {
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
-                var queuedMessage = new MessageQueueData.QueuedMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession));
+
+                MessageQueueData.IQueuedMessage queuedMessage = message switch
+                {
+                    ItemSendLogMessage ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ColorLogMessage(), message.ToString(), message.GetUserPings(botSession)),
+                    JoinLogMessage JoinLogMessage => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Green)),
+                    LeaveLogMessage JoinLogMessage => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Red)),
+                    ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedLogMessage(message.ToString()),
+                    GoalLogMessage => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Gold)),
+                    _ => new MessageQueueData.QueuedLogMessage(new EmbedBuilder().WithDescription(message.ToString())),
+                };
                 botSession.QueueMessageForChannel(queuedMessage);
             }
         }
@@ -86,7 +95,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                     {
                         await discordBot.CleanAndCloseChannel(i);
                         var DisconnectEmbed = new EmbedBuilder()
-                            .WithColor(Color.Red)
+                            .WithColor(Color.Orange)
                             .WithTitle("Session Disconnected")
                             .WithFields(
                                 new EmbedFieldBuilder().WithName("Server").WithValue(session.ConnectionInfo.ToFormattedJson()),
@@ -107,7 +116,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 Console.WriteLine(session.DiscordChannel.Name);
                 await archipelagoConnectionHelpers.CleanAndCloseChannel(botClient, session.DiscordChannel.Id);
                 var DisconnectEmbed = new EmbedBuilder()
-                    .WithColor(Color.Red)
+                    .WithColor(Color.Orange)
                     .WithTitle("Session Disconnected")
                     .WithFields(
                         new EmbedFieldBuilder().WithName("Server").WithValue(session.ConnectionInfo.ToFormattedJson()),

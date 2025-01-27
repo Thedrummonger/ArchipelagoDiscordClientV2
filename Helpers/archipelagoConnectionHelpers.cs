@@ -44,7 +44,8 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                         botSession.QueueMessageForChannel(queuedMessage);
                         break;
                     case CommandResultLogMessage commandResultLogMessage:
-                        botSession.QueueMessageForChannel(commandResultLogMessage.ToString());
+                        var Message = new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).Build());
+                        botSession.QueueMessageForChannel(Message);
                         break;
                 }
             }

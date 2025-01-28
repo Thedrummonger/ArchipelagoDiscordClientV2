@@ -80,11 +80,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
                 MessageQueueData.IQueuedMessage queuedMessage = message switch
                 {
-                    ItemSendLogMessage ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
-                    JoinLogMessage JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Green).Build()),
-                    LeaveLogMessage JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(JoinLogMessage.ToString()).WithColor(Color.Red).Build()),
-                    ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),
+                    ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
+                    JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Green).Build()),
+                    LeaveLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Red).Build()),
+                    ReleaseLogMessage or CollectLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Blue).Build()),
                     GoalLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Gold).Build()),
+                    ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),
                     _ => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).Build()),
                 };
                 botSession.QueueMessageForChannel(queuedMessage);

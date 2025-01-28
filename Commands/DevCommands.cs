@@ -1,4 +1,5 @@
-﻿using ArchipelagoDiscordClientLegacy.Data;
+﻿using Archipelago.MultiClient.Net;
+using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
@@ -15,13 +16,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
+                .AddOption("player", ApplicationCommandOptionType.String, "Player to goal", false)
                 .WithDescription("Goals the current slot").Build();
 
             public bool IsDebugCommand => true;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
-                if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out _, out string result))
+                if (!command.Validate(discordBot, out var session, out var commandData, out string result))
                 {
                     await command.RespondAsync(result, ephemeral: true);
                     return;
@@ -32,8 +34,20 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync("This command is only available for debugging", ephemeral: true);
                     return;
                 }
-                await command.RespondAsync($"Goaled ${session!.ArchipelagoSession.Players.ActivePlayer.Name} {session.ArchipelagoSession.Players.ActivePlayer.Game}");
-                session.ArchipelagoSession.SetGoalAchieved();
+                string ActivePlayerName = session!.ArchipelagoSession.Players.ActivePlayer.Name;
+
+                var player = commandData.GetArg("player")?.GetValue<string>() ?? ActivePlayerName;
+                ArchipelagoSession SelectedAPSession;
+                if (player == ActivePlayerName) SelectedAPSession = session.ArchipelagoSession;
+                else if (session.AuxiliarySessions.TryGetValue(player, out var AuxSession)) SelectedAPSession = AuxSession;
+                else
+                {
+                    await command.RespondAsync($"{player} is not a valid connected slot", ephemeral: true);
+                    return;
+                }
+
+                await command.RespondAsync($"Goaled ${SelectedAPSession.Players.ActivePlayer.Name} {SelectedAPSession.Players.ActivePlayer.Game}");
+                SelectedAPSession.SetGoalAchieved();
             }
         }
 

@@ -27,7 +27,7 @@
             public static readonly int UpdateChannel = 300000;
             public static readonly int APICalls = 20;
 
-            public static readonly int IdleDelay = 1000;
+            public static readonly int IdleDelay = 100;
 
             public static readonly int DiscordMessageLimit = 2000;
             public static readonly int DiscordEmbedMessageLimit = 4000;

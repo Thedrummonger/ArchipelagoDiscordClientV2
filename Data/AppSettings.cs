@@ -80,24 +80,23 @@ namespace ArchipelagoDiscordClientLegacy.Data
             }
         }
         /// <summary>
-        /// Retrieves a toggle setting by its index (if valid).
+        /// Retrieves a toggle setting by its index.
         /// </summary>
-        /// <param name="index">The index of the setting.</param>
+        /// <typeparam name="T">The numeric type (e.g., int, long, short, double, int?, long?).</typeparam>
+        /// <param name="index">The numeric index of the setting.</param>
         /// <returns>The corresponding <see cref="ToggleSetting"/> or null if the index is invalid.</returns>
-        public ToggleSetting? GetSetting(long? index)
+        public ToggleSetting? GetSetting<T>(T? index) where T : struct, IConvertible
         {
-            if (index == null) return null;
-            return GetSetting((int)index.Value);
-        }
-        /// <summary>
-        /// Retrieves a toggle setting by its index (if valid).
-        /// </summary>
-        /// <param name="index">The index of the setting.</param>
-        /// <returns>The corresponding <see cref="ToggleSetting"/> or null if the index is out of range.</returns>
-        public ToggleSetting? GetSetting(int index)
-        {
-            if (index < 0 || index >= toggleSettings.Count) return null;
-            return toggleSettings[index];
+            if (index is null) return null;
+            try
+            {
+                int parsedIndex = Convert.ToInt32(index);
+                return (parsedIndex >= 0 && parsedIndex < toggleSettings.Count) ? toggleSettings[parsedIndex] : null;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

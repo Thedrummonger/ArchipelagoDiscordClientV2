@@ -3,12 +3,18 @@ using System.Reflection;
 
 namespace ArchipelagoDiscordClientLegacy.Data
 {
+    /// <summary>
+    /// Represents the bot's application-wide settings, including default session configurations.
+    /// </summary>
     public class AppSettings
     {
         public string BotToken = "";
         public SessionSetting AppDefaultSettings = new() { IgnoreTags = ["tracker", "textonly"] };
     }
 
+    /// <summary>
+    /// Represents configurable session settings that control message filtering and behavior.
+    /// </summary>
     public class SessionSetting
     {
         [Description("Ignores client join and client leave messages")]
@@ -26,6 +32,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
         public HashSet<string> IgnoreTags { get; set; } = [];
         public Dictionary<ulong, HashSet<string>> SlotAssociations { get; set; } = [];
 
+        /// <summary>
+        /// Retrieves all boolean-based settings that can be toggled.
+        /// </summary>
+        /// <returns>An array of boolean property metadata.</returns>
         public static PropertyInfo[] GetToggleSettings()
         {
             var properties = typeof(SessionSetting).GetProperties(BindingFlags.Public | BindingFlags.Instance);
@@ -33,19 +43,33 @@ namespace ArchipelagoDiscordClientLegacy.Data
         }
     }
 
+    /// <summary>
+    /// Represents a toggleable session setting with a display name and description.
+    /// </summary>
     public class ToggleSetting(string Name, string Description, SessionSetting settings, PropertyInfo property)
     {
         public string DisplayName = Name;
         public string SettingDescription = Description;
-        public bool Value {
+        public bool Value
+        {
             get { return (bool)property.GetValue(settings)!; }
             set { property.SetValue(settings, value); }
         }
     }
 
+    /// <summary>
+    /// Manages session settings and provides methods for retrieving and modifying toggleable settings.
+    /// </summary>
     public class SettingsManager
     {
+        /// <summary>
+        /// A list of available toggle settings.
+        /// </summary>
         public readonly List<ToggleSetting> toggleSettings = [];
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SettingsManager"/> class and populates the toggle settings list.
+        /// </summary>
+        /// <param name="settings">The session settings to manage.</param>
         public SettingsManager(SessionSetting settings)
         {
             foreach (var property in SessionSetting.GetToggleSettings())
@@ -55,12 +79,21 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 toggleSettings.Add(new ToggleSetting(property.Name, description, settings, property));
             }
         }
-        public string[] GetSettingNames() => toggleSettings.Select(x => x.DisplayName).ToArray();
+        /// <summary>
+        /// Retrieves a toggle setting by its index (if valid).
+        /// </summary>
+        /// <param name="index">The index of the setting.</param>
+        /// <returns>The corresponding <see cref="ToggleSetting"/> or null if the index is invalid.</returns>
         public ToggleSetting? GetSetting(long? index)
         {
             if (index == null) return null;
             return GetSetting((int)index.Value);
         }
+        /// <summary>
+        /// Retrieves a toggle setting by its index (if valid).
+        /// </summary>
+        /// <param name="index">The index of the setting.</param>
+        /// <returns>The corresponding <see cref="ToggleSetting"/> or null if the index is out of range.</returns>
         public ToggleSetting? GetSetting(int index)
         {
             if (index < 0 || index >= toggleSettings.Count) return null;

@@ -10,6 +10,9 @@ namespace ArchipelagoDiscordClientLegacy.Data
 {
     public class DiscordBotData
     {
+        /// <summary>
+        /// Represents the core Discord bot instance, managing active sessions, command handling, and API interactions.
+        /// </summary>
         public class DiscordBot
         {
             public Dictionary<ulong, ActiveBotSession> ActiveSessions = [];
@@ -19,7 +22,10 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public SlashCommandHandlers CommandHandler;
             public DiscordMessageHandlers DiscordMessageHandler;
             public BotAPIRequestQueue DiscordAPIQueue;
-
+            /// <summary>
+            /// Initializes a new instance of the <see cref="DiscordBot"/> class.
+            /// </summary>
+            /// <param name="Settings">The application settings used for bot configuration.</param>
             public DiscordBot(AppSettings Settings)
             {
                 appSettings = Settings;
@@ -31,16 +37,28 @@ namespace ArchipelagoDiscordClientLegacy.Data
             }
 
             public DiscordSocketClient Client { get; private set; }
+            /// <summary>
+            /// Starts the Discord bot by logging in and connecting to Discord.
+            /// </summary>
             public async Task Start()
             {
                 await Client!.LoginAsync(TokenType.Bot, appSettings.BotToken.Trim());
                 await Client.StartAsync();
             }
+            /// <summary>
+            /// Creates cached session data for the given channel. Should be used when a new session is created.
+            /// </summary>
+            /// <param name="ChannelID">The Discord channel ID associated with the session.</param>
+            /// <param name="NewCachedSession">The new session data to store in the cache.</param>
             public void UpdateConnectionCache(ulong ChannelID, SessionConstructor NewCachedSession)
             {
                 ConnectionCache[ChannelID] = NewCachedSession;
                 UpdateConnectionCache();
             }
+            /// <summary>
+            /// Updates the cached session data for active session for the given channel.
+            /// </summary>
+            /// <param name="ChannelID">The Discord channel ID associated with the active session.</param>
             public void UpdateConnectionCache(ulong ChannelID)
             {
                 var ActiveSession = ActiveSessions[ChannelID];
@@ -51,7 +69,9 @@ namespace ArchipelagoDiscordClientLegacy.Data
             }
             private void UpdateConnectionCache() => File.WriteAllText(Constants.Paths.ConnectionCache, ConnectionCache.ToFormattedJson());
         }
-
+        /// <summary>
+        /// Configures the Discord bot's settings, including logging levels and gateway intents.
+        /// </summary>
         public static readonly DiscordSocketConfig DiscordSocketConfig = new()
         {
             LogLevel = Debugger.IsAttached ? LogSeverity.Debug : LogSeverity.Info,

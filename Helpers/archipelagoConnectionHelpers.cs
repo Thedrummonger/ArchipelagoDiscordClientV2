@@ -7,8 +7,13 @@ using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
 {
-    public static class archipelagoConnectionHelpers
+    public static class ArchipelagoConnectionHelpers
     {
+        /// <summary>
+        /// Cleans up and closes an active Archipelago session associated with a specific Discord channel.
+        /// </summary>
+        /// <param name="bot">The Discord bot managing the session.</param>
+        /// <param name="channelId">The Discord channel ID linked to the session.</param>
         public static async Task CleanAndCloseChannel(this DiscordBot bot, ulong channelId)
         {
             if (!bot.ActiveSessions.TryGetValue(channelId, out var session)) { return; }
@@ -25,14 +30,13 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
         }
         /// <summary>
-        /// Creates the archipelago handlers for the given auxiliary slot connection
+        /// Sets up message handlers for an auxiliary Archipelago session.
         /// </summary>
-        /// <param name="botSession"></param>
-        /// <param name="discordBot"></param>
-        /// <param name="AuxiliaryConnection"></param>
-        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, ArchipelagoSession AuxiliaryConnection)
+        /// <param name="botSession">The active bot session.</param>
+        /// <param name="auxiliaryConnection">The auxiliary Archipelago session.</param>
+        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, ArchipelagoSession auxiliaryConnection)
         {
-            AuxiliaryConnection.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
+            auxiliaryConnection.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
 
             void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
             {
@@ -51,18 +55,17 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
         }
         /// <summary>
-        /// Creates the archipelago handlers for the main slot connection
+        /// Sets up message handlers for the primary Archipelago session connection.
         /// </summary>
-        /// <param name="botSession"></param>
+        /// <param name="botSession">The active bot session.</param>
         public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession)
         {
             botSession.ArchipelagoSession.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
             botSession.ArchipelagoSession.Socket.SocketClosed += async (reason) =>
             {
-                //To my knowledge this is never actually called in this code.
-                //It seems to only trigger when the "Disconnect" command is run by the
-                //bot and not when the AP server is closed, which is what this code is supposed to handle.
-                //I'll leave it in for now, but detecting server closing is currently done in the `CheckServerConnection` function
+                // Note: This event is not reliably triggered when the AP server closes,
+                // as it primarily fires when the bot disconnects manually.
+                // Server closures are currently handled in `CheckServerConnection`.
                 if (!botSession.ParentBot.ActiveSessions.ContainsKey(botSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
                 await CleanAndCloseChannel(botSession.ParentBot, botSession.DiscordChannel.Id);
                 var DisconnectEmbed = new EmbedBuilder()
@@ -83,7 +86,8 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                     ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
                     JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Green).Build()),
                     LeaveLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Red).Build()),
-                    ReleaseLogMessage or CollectLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Blue).Build()),
+                    CollectLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Blue).Build()),
+                    ReleaseLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Blue).Build()),
                     GoalLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Gold).Build()),
                     ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),
                     _ => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).Build()),
@@ -92,7 +96,11 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
         }
 
-        public static async Task SessionDisconnectionHandler(this DiscordBot discordBot)
+        /// <summary>
+        /// Monitors active Archipelago sessions and closes any that are disconnected.
+        /// </summary>
+        /// <param name="discordBot">The Discord bot instance managing the sessions.</param>
+        public static async Task MonitorAndHandleAPServerClose(this DiscordBot discordBot)
         {
             while (true)
             {
@@ -117,13 +125,17 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
         }
 
-        public static async Task DisconnectAllClients(this DiscordBot botClient)
+        /// <summary>
+        /// Disconnects all active Archipelago clients and clears the bot's session list.
+        /// </summary>
+        /// <param name="discordBot">The Discord bot instance managing the sessions.</param>
+        public static async Task DisconnectAllClients(this DiscordBot discordBot)
         {
             Console.WriteLine("Disconnecting all clients...");
-            foreach (var session in botClient.ActiveSessions.Values)
+            foreach (var session in discordBot.ActiveSessions.Values)
             {
                 Console.WriteLine(session.DiscordChannel.Name);
-                await archipelagoConnectionHelpers.CleanAndCloseChannel(botClient, session.DiscordChannel.Id);
+                await CleanAndCloseChannel(discordBot, session.DiscordChannel.Id);
                 var DisconnectEmbed = new EmbedBuilder()
                     .WithColor(Color.Orange)
                     .WithTitle("Session Disconnected")
@@ -131,14 +143,14 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                         new EmbedFieldBuilder().WithName("Server").WithValue(session.ConnectionInfo.ToFormattedJson()),
                         new EmbedFieldBuilder().WithName("Reason").WithValue("Bot has exited")
                     ).Build();
-                botClient.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
+                discordBot.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
             }
             Console.WriteLine("Waiting for Queue to clear...");
-            while (botClient.DiscordAPIQueue.Queue.Count > 0)
+            while (discordBot.DiscordAPIQueue.Queue.Count > 0)
             {
                 await Task.Delay(20);
             }
-            botClient.DiscordAPIQueue.IsProcessing = false;
+            discordBot.DiscordAPIQueue.IsProcessing = false;
             await Task.Delay(2000);
         }
     }

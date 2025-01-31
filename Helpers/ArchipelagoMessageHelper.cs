@@ -7,6 +7,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 {
     public static class ArchipelagoMessageHelper
     {
+        /// <summary>
+        /// Determines which Discord users should be pinged based on the contents of a log message.
+        /// </summary>
+        /// <param name="message">The log message being processed.</param>
+        /// <param name="session">The active bot session containing slot associations.</param>
+        /// <returns>A set of Discord user IDs to ping.</returns>
         public static HashSet<ulong> GetUserPings(this LogMessage message, ActiveBotSession session)
         {
             return message switch
@@ -17,7 +23,6 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             };
             HashSet<ulong> GetItemSendPings(ItemSendLogMessage itemSendMessage)
             {
-                HashSet<ulong> ToPing = [];
                 //Only ping for Progression Items
                 if (!itemSendMessage.Item.Flags.HasFlag(Archipelago.MultiClient.Net.Enums.ItemFlags.Advancement)) return [];
                 //If a player sends an item to themselves, no need to notify
@@ -30,7 +35,6 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
             HashSet<ulong> GetHintPing(HintItemSendLogMessage hintItemSendLog)
             {
-                HashSet<ulong> ToPing = [];
                 //Only ping for Items that have not been found
                 if (hintItemSendLog.IsFound) return [];
                 //If a player sends an item to themselves, no need to notify
@@ -43,11 +47,22 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
 
         }
+        /// <summary>
+        /// Converts a log message into a colored string based on predefined ANSI color codes.
+        /// </summary>
+        /// <param name="message">The log message to format.</param>
+        /// <returns>A string with color formatting applied.</returns>
         public static string ToColoredString(this LogMessage message)
         {
             return string.Concat(message.Parts.Select(part => part.Text.SetColor(part.Color)));
         }
 
+        /// <summary>
+        /// Determines whether a hint message should be relayed based on active listening players.
+        /// </summary>
+        /// <param name="hintLogMessage">The hint log message.</param>
+        /// <param name="session">The active bot session.</param>
+        /// <returns>True if the message should be relayed, otherwise false.</returns>
         public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session)
         {
             //Get all slots that are actively listening for hint messages in this channel.
@@ -56,6 +71,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             return hintLogMessage.IsReceiverTheActivePlayer || !listeningPlayers.Contains(hintLogMessage.Receiver.Name);
         }
 
+        /// <summary>
+        /// Determines whether a log message should be ignored based on session settings.
+        /// </summary>
+        /// <param name="logMessage">The log message to evaluate.</param>
+        /// <param name="session">The active bot session.</param>
+        /// <returns>True if the message should be ignored, otherwise false.</returns>
         public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session)
         {
             if (string.IsNullOrWhiteSpace(logMessage.ToString()))
@@ -94,6 +115,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             };
         }
 
+        /// <summary>
+        /// Determines whether chat messages from connected players should be ignored.
+        /// </summary>
+        /// <param name="logMessage">The chat log message.</param>
+        /// <param name="session">The active bot session.</param>
+        /// <returns>True if the message should be ignored, otherwise false.</returns>
         public static bool ShouldIgnoreConnectedPlayerChat(this ChatLogMessage logMessage, ActiveBotSession session)
         {
             if (!session.Settings.IgnoreConnectedPlayerChats) { return false; }
@@ -102,6 +129,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Determines whether a log message should be ignored because it is unrelated to the active session.
+        /// </summary>
+        /// <param name="logMessage">The log message.</param>
+        /// <param name="session">The active bot session.</param>
+        /// <returns>True if the message should be ignored, otherwise false.</returns>
         public static bool ShouldIgnoreUnrelated(this LogMessage logMessage, ActiveBotSession session)
         {
             if (!session.Settings.IgnoreUnrelated) { return false; }
@@ -121,7 +154,11 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             return true;
         }
 
-        //For some reason, LeaveLogMessage does not contain tags. For now we can extract the tags manually from the message.
+        /// <summary>
+        /// Extracts tags from a LeaveLogMessage, since this message type does not natively store tags.
+        /// </summary>
+        /// <param name="message">The leave log message.</param>
+        /// <returns>A set of extracted tags.</returns>
         public static HashSet<string> GetTags(this LeaveLogMessage Message)
         {
             string messageString = string.Join('\n', Message.Parts.Select(x => x.Text));
@@ -129,8 +166,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             Match? match = Regex.Matches(messageString, @"\[(.*?)\]").LastOrDefault();
             if (match is null) return [];
             var rawTags = match.Groups[1].Value.TrimSplit(",");
-            //To my knowledge tags always are always in single quotes,
-            //if they are we need to remove those, but lets also handle if they aren't for some reason
+            //Remove single quotes if present, otherwise return as-is.
             var processedTags = rawTags.Select(part => part.StartsWith("'") && part.EndsWith("'") ? part[1..^1] : part);
             return processedTags.ToHashSet();
         }

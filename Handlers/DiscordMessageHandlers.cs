@@ -4,8 +4,15 @@ using Discord.WebSocket;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
+    /// <summary>
+    /// Handles messages received in Discord and relays them to the Archipelago server if applicable.
+    /// </summary>
     public class DiscordMessageHandlers(DiscordBotData.DiscordBot discordBot)
     {
+        /// <summary>
+        /// Processes an incoming Discord message and determines if it should be relayed to an Archipelago session.
+        /// </summary>
+        /// <param name="message">The Discord message received.</param>
         public async Task HandleDiscordMessageReceivedAsync(SocketMessage message)
         {
             // Ignore messages from bots
@@ -16,18 +23,23 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 
             var channelId = textChannel.Id;
 
+            // Check if the message was sent in an active Archipelago session channel
             if (discordBot.ActiveSessions.TryGetValue(channelId, out Sessions.ActiveBotSession? Session))
             {
-                await RelayMessageToArchipelago(message, Session, discordBot);
+                await RelayMessageToArchipelago(message, Session);
             }
         }
-
-        // TODO: Due to the way Archipelago handles "chat" messages, any message sent to AP 
-        // is broadcast to all clients, including the one that originally sent it. 
-        // This results in messages being duplicated in the Discord chat.
-        // Ideally, I want to avoid posting a message to Discord if it originated 
-        // from the same channel, but I can't think of a good way to track that. 
-        public static async Task RelayMessageToArchipelago(SocketMessage message, Sessions.ActiveBotSession activeBotSession, DiscordBotData.DiscordBot discordBot)
+        /// <summary>
+        /// Relays a Discord message to the Archipelago server as an in-game chat message.
+        /// </summary>
+        /// <remarks>
+        /// Archipelago broadcasts chat messages to all connected clients, including the sender. 
+        /// This may cause duplicated messages in Discord since there is no direct way to track 
+        /// and prevent reposting messages that originated from the same channel.
+        /// </remarks>
+        /// <param name="message">The Discord message to relay.</param>
+        /// <param name="activeBotSession">The active Archipelago session for the Discord channel.</param>
+        public static async Task RelayMessageToArchipelago(SocketMessage message, Sessions.ActiveBotSession activeBotSession)
         {
             if (string.IsNullOrWhiteSpace(message.Content)) { return; }
 

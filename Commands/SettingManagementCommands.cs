@@ -28,7 +28,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync(result, ephemeral: true);
                     return;
                 }
-                var SessionCache = discordBot.ConnectionCache[Data.channelId];
+                var SessionCache = discordBot.ConnectionCache[Data.ChannelId];
                 var SettingString = $"```json\n{SessionCache.ToFormattedJson()}\n```";
                 await command.RespondAsync(SettingString, ephemeral: true);
             }
@@ -85,7 +85,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
                 selectedSetting.Value = value ?? !selectedSetting.Value;
 
-                discordBot.UpdateConnectionCache(Data.channelId);
+                discordBot.UpdateConnectionCache(Data.ChannelId);
 
                 await command.RespondAsync($"Setting [{selectedSetting.DisplayName}] set to [{selectedSetting.Value}]");
             }
@@ -130,7 +130,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     ActionResult = $"Removed [{string.Join(", ", values)}] from the ignore list";
                 }
 
-                discordBot.UpdateConnectionCache(Data.channelId);
+                discordBot.UpdateConnectionCache(Data.ChannelId);
                 await command.RespondAsync(ActionResult);
             }
         }

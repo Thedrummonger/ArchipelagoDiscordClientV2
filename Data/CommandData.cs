@@ -4,12 +4,15 @@ namespace ArchipelagoDiscordClientLegacy.Data
 {
     public static class CommandData
     {
+        /// <summary>
+        /// Represents structured data extracted from a Discord slash command.
+        /// </summary>
         public class CommandDataModel
         {
-            public required ulong guildId { get; set; }
-            public required ulong channelId { get; set; }
-            public string? channelName { get; set; }
-            public ISocketMessageChannel? textChannel { get; set; }
+            public required ulong GuildId { get; set; }
+            public required ulong ChannelId { get; set; }
+            public string? ChannelName { get; set; }
+            public ISocketMessageChannel? TextChannel { get; set; }
             public Dictionary<string, SocketSlashCommandDataOption> Arguments { get; set; } = [];
             public SocketSlashCommandDataOption? GetArg(string key)
             {
@@ -17,22 +20,34 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 return arg;
             }
         }
+        /// <summary>
+        /// Extracts structured data from a Discord slash command and returns it as a <see cref="CommandDataModel"/>.
+        /// </summary>
+        /// <param name="command">The incoming slash command.</param>
+        /// <returns>A <see cref="CommandDataModel"/> containing structured command data.</returns>
         public static CommandDataModel GetCommandData(this SocketSlashCommand command)
         {
             var Data = new CommandDataModel()
             {
-                guildId = command.GuildId ?? 0,
-                channelId = command.ChannelId ?? 0,
-                channelName = command.Channel?.Name,
-                textChannel = command.Channel is ISocketMessageChannel STC ? STC : null
+                GuildId = command.GuildId ?? 0,
+                ChannelId = command.ChannelId ?? 0,
+                ChannelName = command.Channel?.Name,
+                TextChannel = command.Channel is ISocketMessageChannel STC ? STC : null
             };
-            Data.channelName ??= Data.channelId.ToString();
+            Data.ChannelName ??= Data.ChannelId.ToString();
             foreach (var i in command.Data.Options)
             {
                 Data.Arguments[i.Name] = i;
             }
             return Data;
         }
+        /// <summary>
+        /// Attempts to retrieve the value of a command option and convert it to the specified type.
+        /// </summary>
+        /// <typeparam name="T">The expected type of the value.</typeparam>
+        /// <param name="option">The command option containing the value.</param>
+        /// <returns>The converted value if successful, otherwise the default value of <typeparamref name="T"/>.</returns>
+
         public static T? GetValue<T>(this SocketSlashCommandDataOption option)
         {
             object value = option.Value;

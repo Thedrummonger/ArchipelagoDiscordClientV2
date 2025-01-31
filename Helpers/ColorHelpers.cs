@@ -1,28 +1,47 @@
 ﻿namespace ArchipelagoDiscordClientLegacy.Helpers
 {
+    /// <summary>
+    /// Provides helper methods and predefined color mappings for formatting text with color in Discord messages.
+    /// </summary>
+    /// <remarks>
+    /// Uses Discord's code markdown for text coloring. The ANSI escape sequences approximate 
+    /// Archipelago's colors but may not match exactly. Reference: 
+    /// https://gist.github.com/kkrypt0nn/a02506f3712ff2d1c8ca7c9e0aed7c06
+    /// </remarks>
     public static class ColorHelpers
     {
-        //Using discords Code Markdown we can color words in messages
-        //Uses this method https://gist.github.com/kkrypt0nn/a02506f3712ff2d1c8ca7c9e0aed7c06
-        //The colors don't match 100% with archipelago but we can get close enough
 
+        /// <summary>
+        /// Wraps a string with the appropriate ANSI escape sequences to apply color formatting.
+        /// </summary>
+        /// <param name="input">The text to format.</param>
+        /// <param name="color">The color to apply, based on Archipelago's color model.</param>
+        /// <returns>The formatted string with ANSI color codes if a matching color exists, otherwise the original string.</returns>
         public static string SetColor(this string input, Archipelago.MultiClient.Net.Models.Color color)
         {
             if (!ColorCodes.TryGetValue(color, out Tuple<string, string>? Parts)) { return input; }
             return $"{Parts.Item1}{input}{Parts.Item2}";
         }
-
+        /// <summary>
+        /// Predefined color mappings for hint-related messages.
+        /// </summary>
         public class Hints
         {
             public static readonly Archipelago.MultiClient.Net.Models.Color Unfound = Archipelago.MultiClient.Net.Models.Color.Red;
             public static readonly Archipelago.MultiClient.Net.Models.Color found = Archipelago.MultiClient.Net.Models.Color.Green;
         }
+        /// <summary>
+        /// Predefined color mappings for player-related messages.
+        /// </summary>
         public class Players
         {
             //NOTE these are backwards in the comments in the library
             public static readonly Archipelago.MultiClient.Net.Models.Color Local = Archipelago.MultiClient.Net.Models.Color.Magenta;
             public static readonly Archipelago.MultiClient.Net.Models.Color Other = Archipelago.MultiClient.Net.Models.Color.Yellow;
         }
+        /// <summary>
+        /// Predefined color mappings for item-related messages.
+        /// </summary>
         public class Items
         {
             public static readonly Archipelago.MultiClient.Net.Models.Color Normal = Archipelago.MultiClient.Net.Models.Color.Cyan;
@@ -30,10 +49,18 @@
             public static readonly Archipelago.MultiClient.Net.Models.Color Traps = Archipelago.MultiClient.Net.Models.Color.Salmon;
             public static readonly Archipelago.MultiClient.Net.Models.Color Progression = Archipelago.MultiClient.Net.Models.Color.Plum;
         }
-        public static readonly Archipelago.MultiClient.Net.Models.Color Entrance = Archipelago.MultiClient.Net.Models.Color.Blue;
-        public static readonly Archipelago.MultiClient.Net.Models.Color Location = Archipelago.MultiClient.Net.Models.Color.Green;
+        /// <summary>
+        /// Predefined color mappings for location-related message types.
+        /// </summary>
+        public class Locations
+        {
+            public static readonly Archipelago.MultiClient.Net.Models.Color Entrance = Archipelago.MultiClient.Net.Models.Color.Blue;
+            public static readonly Archipelago.MultiClient.Net.Models.Color Location = Archipelago.MultiClient.Net.Models.Color.Green;
+        }
 
-
+        /// <summary>
+        /// Dictionary mapping Archipelago colors to their respective ANSI escape sequences for text formatting.
+        /// </summary>
         public static readonly Dictionary<Archipelago.MultiClient.Net.Models.Color, Tuple<string, string>> ColorCodes = new()
             {
                 { Archipelago.MultiClient.Net.Models.Color.Red, new (@"[2;31m", @"[0m") },

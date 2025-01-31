@@ -5,7 +5,6 @@ using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
@@ -71,7 +70,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                if (!discordBot.ConnectionCache.TryGetValue(Data.textChannel!.Id, out Sessions.SessionConstructor? connectionCache) || connectionCache is null)
+                if (!discordBot.ConnectionCache.TryGetValue(Data.TextChannel!.Id, out Sessions.SessionConstructor? connectionCache) || connectionCache is null)
                 {
                     await command.RespondAsync(embed: new EmbedBuilder().WithDescription("No previous connection cached for this channel").WithColor(Color.Red).Build(), ephemeral: true);
                     return;
@@ -100,7 +99,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
                 await command.RespondAsync(embed: new EmbedBuilder().WithDescription("Disconnecting from the Archipelago server.").Build());
 
-                await archipelagoConnectionHelpers.CleanAndCloseChannel(discordBot, Data.channelId);
+                await ArchipelagoConnectionHelpers.CleanAndCloseChannel(discordBot, Data.ChannelId);
 
                 await command.ModifyOriginalResponseAsync(x => x.Embed = new EmbedBuilder()
                     .WithDescription("Successfully disconnected from the Archipelago server.")
@@ -120,7 +119,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             {
                 var Data = command.GetCommandData();
 
-                await command.RespondAsync(embed: new EmbedBuilder().WithDescription($"Connecting {Data.channelName} to " +
+                await command.RespondAsync(embed: new EmbedBuilder().WithDescription($"Connecting {Data.ChannelName} to " +
                     $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
                     $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
                     $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}").Build());
@@ -152,15 +151,15 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         return;
                     }
 
-                    var NewSession = new Sessions.ActiveBotSession(sessionConstructor, discordBot, Data.textChannel!, session);
-                    discordBot.ActiveSessions[Data.channelId] = NewSession;
+                    var NewSession = new Sessions.ActiveBotSession(sessionConstructor, discordBot, Data.TextChannel!, session);
+                    discordBot.ActiveSessions[Data.ChannelId] = NewSession;
 
-                    discordBot.UpdateConnectionCache(Data.channelId, sessionConstructor);
+                    discordBot.UpdateConnectionCache(Data.ChannelId, sessionConstructor);
 
                     NewSession.CreateArchipelagoHandlers();
                     _ = NewSession.MessageQueue.ProcessChannelMessages();
 
-                    var SuccessMessage = $"Successfully connected channel {Data.channelName} to Archipelago server at " +
+                    var SuccessMessage = $"Successfully connected channel {Data.ChannelName} to Archipelago server at " +
                         $"{NewSession.ArchipelagoSession.Socket.Uri.Host}:" +
                         $"{NewSession.ArchipelagoSession.Socket.Uri.Port} as " +
                         $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Name} playing " +

@@ -41,7 +41,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 else
                     await Remove(command, discordBot, commandData, session!);
 
-                discordBot.UpdateConnectionCache(commandData.channelId);
+                discordBot.UpdateConnectionCache(commandData.ChannelId);
 
             }
 

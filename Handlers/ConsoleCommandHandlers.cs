@@ -6,6 +6,10 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
     internal class ConsoleCommandHandlers
     {
         public static Dictionary<string, IConsoleCommand> ConsoleCommandRegistry = [];
+        /// <summary>
+        /// Scans the application for all classes implementing <see cref="IConsoleCommand"/> 
+        /// and registers them in the <see cref="ConsoleCommandRegistry"/>.
+        /// </summary>
         public static void RegisterCommands()
         {
             var commandTypes = AppDomain.CurrentDomain.GetAssemblies()
@@ -22,6 +26,10 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 }
             }
         }
+        /// <summary>
+        /// Continuously listens for user input in the console and processes commands accordingly.
+        /// </summary>
+        /// <param name="botClient">The Discord bot instance that commands interact with.</param>
         public static void RunUserInputLoop(DiscordBot botClient)
         {
             while (true)
@@ -32,7 +40,11 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 ProcessConsoleCommand(botClient, input);
             }
         }
-
+        /// <summary>
+        /// Determines whether the user has entered an exit command.
+        /// </summary>
+        /// <param name="input">The user's console input.</param>
+        /// <returns>True if the input is "exit", otherwise false.</returns>
         private static bool ShouldExit(string input)
         {
             if (input is null || input != "exit") return false;
@@ -40,9 +52,14 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             return true;
         }
 
-        public static void ProcessConsoleCommand(DiscordBot botClient, string Input)
+        /// <summary>
+        /// Processes a console command by executing the corresponding registered command.
+        /// </summary>
+        /// <param name="botClient">The Discord bot instance that commands interact with.</param>
+        /// <param name="input">The user's console input.</param>
+        public static void ProcessConsoleCommand(DiscordBot botClient, string input)
         {
-            if (ConsoleCommandRegistry.TryGetValue(Input, out IConsoleCommand? consoleCommand))
+            if (ConsoleCommandRegistry.TryGetValue(input, out IConsoleCommand? consoleCommand))
             {
                 consoleCommand.ExecuteCommand(botClient);
             }

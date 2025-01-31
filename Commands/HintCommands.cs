@@ -70,9 +70,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     else if (hint.ItemFlags.HasFlag(ItemFlags.Trap)) { Item = Item.SetColor(ColorHelpers.Items.Traps); }
                     else { Item = Item.SetColor(ColorHelpers.Items.Normal); }
 
-                    Location = Location.SetColor(ColorHelpers.Location);
+                    Location = Location.SetColor(ColorHelpers.Locations.Location);
                     var EntranceLine = Entrance.IsNullOrWhiteSpace() ? "" :
-                        $" at {Entrance.SetColor(ColorHelpers.Entrance)}";
+                        $" at {Entrance.SetColor(ColorHelpers.Locations.Entrance)}";
 
                     FindingPlayerName = FindingPlayer.Slot == TargetPlayer.Slot ?
                         FindingPlayerName.SetColor(ColorHelpers.Players.Local) :

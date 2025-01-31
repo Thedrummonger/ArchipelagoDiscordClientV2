@@ -32,7 +32,7 @@ namespace ArchipelagoDiscordClient
                 ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionConstructor>(), true)
             };
 
-            BotClient.Client.Ready += BotClient.commandRegistry.Initialize;
+            BotClient.Client.Ready += BotClient.commandRegistry.RegisterSlashCommands;
             BotClient.Client.SlashCommandExecuted += BotClient.CommandHandler.HandleSlashCommand;
             BotClient.Client.MessageReceived += BotClient.DiscordMessageHandler.HandleDiscordMessageReceivedAsync;
             BotClient.Client.Log += (logMessage) =>
@@ -47,14 +47,14 @@ namespace ArchipelagoDiscordClient
             _ = Task.Run(BotClient.DiscordAPIQueue.ProcessAPICalls);
 
             //Run a background loop to monitor server connections and clean up any closed or abandoned server connections
-            _ = Task.Run(BotClient.SessionDisconnectionHandler);
+            _ = Task.Run(BotClient.MonitorAndHandleAPServerClose);
 
-            ConsoleCommandHandlers.RegisterCommands();
 
             //Allow for console commands, this loop will not exit unless the exit command is entered
+            ConsoleCommandHandlers.RegisterCommands();
             ConsoleCommandHandlers.RunUserInputLoop(BotClient);
 
-            //If the above loop does exit, gracefully close all connections
+            //If the above loop does exit, most likely because the exit command has been executed, gracefully close all connections before closing the application
             await BotClient.DisconnectAllClients();
         }
     }

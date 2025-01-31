@@ -3,18 +3,22 @@ using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using System.Net.NetworkInformation;
 using System.Net.WebSockets;
-using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
+    /// <summary>
+    /// Manages a queue of messages for an active Archipelago session and ensures they are processed within Discord rate limits.
+    /// </summary>
     public class ActiveSessionMessageQueue(DiscordBotData.DiscordBot discordBot, Sessions.ActiveBotSession ChannelSession)
     {
         private static readonly Tuple<string, string> Formatter = new("```ansi\n", "\n```");
         private static readonly string LineSeparator = "\n\n";
         public Queue<IQueuedMessage> Queue = [];
+        /// <summary>
+        /// Continuously processes and sends queued messages for the session while the session remains active.
+        /// </summary>
         public async Task ProcessChannelMessages()
         {
             while (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
@@ -40,7 +44,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                         items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set1)).Build());
                         if (Set2.Count > 0)
                             items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set2)).Build());
-                        QueuedMessage queuedAPIMessage = new(items, CreatePingString([.. PingSet1, ..PingSet2]));
+                        QueuedMessage queuedAPIMessage = new(items, CreatePingString([.. PingSet1, .. PingSet2]));
                         discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedAPIMessage);
                         break;
                 }
@@ -53,6 +57,12 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 
         }
 
+        /// <summary>
+        /// Retrieves messages for an embed, ensuring they do not exceed the Discord character limit.
+        /// </summary>
+        /// <param name="CharLimit">The maximum number of characters allowed in the message.</param>
+        /// <param name="UserPings">A set of user IDs to ping in the message.</param>
+        /// <returns>A list of messages that fit within the character limit.</returns>
         List<string> GetMessagesForEmbed(int CharLimit, out HashSet<ulong> UserPings)
         {
             UserPings = [];
@@ -73,17 +83,30 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             }
             return messageBatch;
         }
-
+        /// <summary>
+        /// Formats a batch of messages with ANSI code block formatting.
+        /// </summary>
         private static string GetFinalMessage(List<string> sendBatch) =>
             $"{Formatter.Item1}{string.Join(LineSeparator, sendBatch)}{Formatter.Item2}";
-
+        /// <summary>
+        /// Generates a mention string for all users to be pinged in a message.
+        /// </summary>
         private static string CreatePingString(HashSet<ulong> toPing) =>
             string.Join("", toPing.Select(user => $"<@{user}>"));
     }
+    /// <summary>
+    /// Manages a queue for API requests sent by the bot to Discord.
+    /// </summary>
     public class BotAPIRequestQueue(DiscordBotData.DiscordBot discordBot)
     {
+        /// <summary>
+        /// Indicates whether the queue should continue processing API requests.
+        /// </summary>
         public bool IsProcessing = true;
         public Queue<(ISocketMessageChannel channel, IQueuedAPIAction Action)> Queue = [];
+        /// <summary>
+        /// Continuously processes and sends queued API requests while the bot is running.
+        /// </summary>
         public async Task ProcessAPICalls()
         {
             while (IsProcessing)
@@ -112,7 +135,10 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             }
             Console.WriteLine($"Exited Global API Processing Queue");
         }
-
+        /// <summary>
+        /// Logs exceptions that occur while processing API requests.
+        /// </summary>
+        /// <param name="ex">The exception that occurred.</param>
         private static void LogException(Exception ex)
         {
             switch (ex)

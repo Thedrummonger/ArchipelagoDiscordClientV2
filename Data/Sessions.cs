@@ -7,8 +7,18 @@ namespace ArchipelagoDiscordClientLegacy.Data
 {
     public static class Sessions
     {
+        /// <summary>
+        /// Represents an active session of a Discord bot connected to an Archipelago server.
+        /// </summary>
         public class ActiveBotSession
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ActiveBotSession"/> class.
+            /// </summary>
+            /// <param name="sessionConstructor">The session constructor containing connection settings.</param>
+            /// <param name="parent">The parent Discord bot managing the session.</param>
+            /// <param name="channel">The Discord channel associated with this session.</param>
+            /// <param name="APSession">The main Archipelago session instance.</param>
             public ActiveBotSession(SessionConstructor sessionConstructor, DiscordBotData.DiscordBot parent, ISocketMessageChannel channel, ArchipelagoSession APSession)
             {
                 Settings = sessionConstructor.Settings!.DeepClone();
@@ -27,7 +37,9 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public ArchipelagoConnectionInfo ConnectionInfo { get; private set; }
             public ActiveSessionMessageQueue MessageQueue { get; private set; }
         }
-
+        /// <summary>
+        /// Stores connection details required to connect to an Archipelago server.
+        /// </summary>
         public class ArchipelagoConnectionInfo
         {
             public required string? IP { get; set; }
@@ -35,7 +47,9 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public required string? Name { get; set; }
             public required string? Password { get; set; }
         }
-
+        /// <summary>
+        /// Represents the configuration needed to construct a new Archipelago session.
+        /// </summary>
         public class SessionConstructor
         {
             public ArchipelagoConnectionInfo? ArchipelagoConnectionInfo { get; set; }

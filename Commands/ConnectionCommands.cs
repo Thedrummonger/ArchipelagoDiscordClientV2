@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Helpers;
 using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
@@ -60,7 +61,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public override SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
-                    .WithDescription("Connects to the server using the last known working connection info.").Build();
+                .AddOption("auxiliary", ApplicationCommandOptionType.Boolean, "Reconnect Auxiliary Session?", false)
+                .WithDescription("Connects to the server using the last known working connection info.").Build();
 
             public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
@@ -76,7 +78,48 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
+                var ReconnectAuxiliary = Data.GetArg("auxiliary")?.GetValue<bool>()??false;
+                HashSet<string> AuxiliarySessions = [.. connectionCache.AuxiliarySessions];
+
                 await ConnectToAPServer(command, discordBot, connectionCache);
+
+                var SessionCreated = discordBot.ActiveSessions.TryGetValue(Data.TextChannel!.Id, out var CreatedSession);
+                if (!SessionCreated) return;
+
+                if (ReconnectAuxiliary)
+                {
+                    HashSet<PlayerInfo> AuxiliarySlots = [];
+                    foreach (var Slot in AuxiliarySessions)
+                    {
+                        var slotInfo = CreatedSession!.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == Slot);
+                        if (slotInfo is null) continue;
+                        AuxiliarySlots.Add(slotInfo);
+                    }
+                    CreatedSession!.ConnectAuxiliarySessions(AuxiliarySlots, out var failedLogins, out var createdSessions);
+                    discordBot.UpdateConnectionCache(Data.TextChannel!.Id);
+
+                    List<Embed> AuxResultEmbeds = [];
+                    if (createdSessions.Count > 0)
+                    {
+                        AuxResultEmbeds.Add(new EmbedBuilder()
+                            .WithTitle($"The following sessions were created").WithColor(Color.Green)
+                            .WithDescription(string.Join("\n", createdSessions)).Build());
+                    }
+                    if (failedLogins.Count > 0)
+                    {
+                        AuxResultEmbeds.Add(new EmbedBuilder()
+                            .WithTitle($"Failed to login to the following sessions").WithColor(Color.Red)
+                            .WithDescription(string.Join("\n", failedLogins)).Build());
+                    }
+                    if (AuxResultEmbeds.Count > 0)
+                    {
+                        await command.ModifyOriginalResponseAsync(msg =>
+                        {
+                            Embed[] embeds = [.. msg.Embeds.Value, .. AuxResultEmbeds];
+                            msg.Embeds = embeds;
+                        });
+                    }
+                }
             }
         }
 

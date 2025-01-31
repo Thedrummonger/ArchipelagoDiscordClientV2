@@ -50,8 +50,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
                 //Results
-                HashSet<string> CreatedSessions = [];
-                HashSet<string> FailedLogins = [];
                 HashSet<string> AlreadyConnectedSlots = [];
                 HashSet<string> InvalidSlotNames = [];
 
@@ -75,28 +73,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     }
                 }
                 await command.RespondAsync(string.Join("\n", ValidSlots.Select(x => x.Name).CreateResultList("Attempting to add auxiliary connections for")));
-                foreach (var slot in ValidSlots)
-                {
-                    var supportSession = ArchipelagoSessionFactory.CreateSession(session.ArchipelagoSession.Socket.Uri);
-                    var ConnectionResult = supportSession.TryConnectAndLogin(
-                        slot.Game,
-                        slot.Name,
-                        ItemsHandlingFlags.AllItems,
-                        Constants.APVersion,
-                        ["TextOnly"],
-                        null,
-                        session.ConnectionInfo.Password);
-                    if (ConnectionResult is LoginSuccessful)
-                    {
-                        CreatedSessions.Add(slot.Name);
-                        session.AuxiliarySessions.Add(slot.Name, supportSession);
-                        session.CreateArchipelagoHandlers(supportSession);
-                    }
-                    else
-                    {
-                        FailedLogins.Add(slot.Name);
-                    }
-                }
+
+                session.ConnectAuxiliarySessions(ValidSlots, out HashSet<string> FailedLogins, out var CreatedSessions);
 
                 List<string> MessageParts =
                     [

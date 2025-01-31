@@ -1,4 +1,6 @@
 ﻿using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
@@ -152,6 +154,34 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
             discordBot.DiscordAPIQueue.IsProcessing = false;
             await Task.Delay(2000);
+        }
+
+        public static void ConnectAuxiliarySessions(this Sessions.ActiveBotSession session, HashSet<PlayerInfo> Slots, out HashSet<string> FailedLogins, out HashSet<string> CreatedSessions)
+        {
+            FailedLogins = [];
+            CreatedSessions = [];
+            foreach (var slot in Slots)
+            {
+                var supportSession = ArchipelagoSessionFactory.CreateSession(session.ArchipelagoSession.Socket.Uri);
+                var ConnectionResult = supportSession.TryConnectAndLogin(
+                    slot.Game,
+                    slot.Name,
+                    ItemsHandlingFlags.AllItems,
+                    Constants.APVersion,
+                    ["TextOnly"],
+                    null,
+                    session.ConnectionInfo.Password);
+                if (ConnectionResult is LoginSuccessful)
+                {
+                    CreatedSessions.Add(slot.Name);
+                    session.AuxiliarySessions.Add(slot.Name, supportSession);
+                    session.CreateArchipelagoHandlers(supportSession);
+                }
+                else
+                {
+                    FailedLogins.Add(slot.Name);
+                }
+            }
         }
     }
 }

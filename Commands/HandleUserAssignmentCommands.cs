@@ -74,14 +74,12 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     else alreadyAssigned.Add(player);
                 }
 
-                List<string> messageParts =
-                    [
-                    ..addedPlayers.CreateResultList($"The following players were associated with {user!.Username}"),
-                    ..alreadyAssigned.CreateResultList($"The following players were already associated with {user!.Username}"),
-                    ..invalidPlayers.CreateResultList($"The following players were not valid players in archipelago"),
-                    ];
+                var Result = CommandHelpers.CreateCommandResultEmbed("User Assignment Results", Color.Green,
+                    ("Added Players", addedPlayers),
+                    ("Already Assigned Players", alreadyAssigned),
+                    ("Invalid Players", invalidPlayers));
 
-                await command.RespondAsync(string.Join("\n", messageParts));
+                await command.RespondAsync(embed: Result.Build());
             }
             async Task Remove(SocketSlashCommand command, DiscordBot discordBot, CommandData.CommandDataModel commandData, Sessions.ActiveBotSession session)
             {
@@ -120,13 +118,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 if (activeSession.Settings.SlotAssociations[user.Id].Count == 0)
                     activeSession.Settings.SlotAssociations.Remove(user.Id);
 
-                List<string> MessageParts =
-                    [
-                    ..validRemovals.CreateResultList($"The following players were removed from {user!.Username}"),
-                    ..invalidRemovals.CreateResultList($"The following players were not associated with {user!.Username}")
-                    ];
+                var Result = CommandHelpers.CreateCommandResultEmbed("User assignment removal Results", Color.Green,
+                    ("Removed Players", validRemovals),
+                    ("Invalid Players", invalidRemovals));
 
-                await command.RespondAsync(string.Join("\n", MessageParts));
+                await command.RespondAsync(embed: Result.Build());
             }
         }
     }

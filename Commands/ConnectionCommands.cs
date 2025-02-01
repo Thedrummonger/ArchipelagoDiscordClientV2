@@ -6,6 +6,7 @@ using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
 using Discord.WebSocket;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
+using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
@@ -78,47 +79,13 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                var ReconnectAuxiliary = Data.GetArg("auxiliary")?.GetValue<bool>()??false;
-                HashSet<string> AuxiliarySessions = [.. connectionCache.AuxiliarySessions];
-
                 await ConnectToAPServer(command, discordBot, connectionCache);
 
+                var ReconnectAuxiliary = Data.GetArg("auxiliary")?.GetValue<bool>() ?? false;
                 var SessionCreated = discordBot.ActiveSessions.TryGetValue(Data.TextChannel!.Id, out var CreatedSession);
-                if (!SessionCreated) return;
-
-                if (ReconnectAuxiliary)
+                if (SessionCreated && ReconnectAuxiliary)
                 {
-                    HashSet<PlayerInfo> AuxiliarySlots = [];
-                    foreach (var Slot in AuxiliarySessions)
-                    {
-                        var slotInfo = CreatedSession!.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == Slot);
-                        if (slotInfo is null) continue;
-                        AuxiliarySlots.Add(slotInfo);
-                    }
-                    CreatedSession!.ConnectAuxiliarySessions(AuxiliarySlots, out var failedLogins, out var createdSessions);
-                    discordBot.UpdateConnectionCache(Data.TextChannel!.Id);
-
-                    List<Embed> AuxResultEmbeds = [];
-                    if (createdSessions.Count > 0)
-                    {
-                        AuxResultEmbeds.Add(new EmbedBuilder()
-                            .WithTitle($"The following sessions were created").WithColor(Color.Green)
-                            .WithDescription(string.Join("\n", createdSessions)).Build());
-                    }
-                    if (failedLogins.Count > 0)
-                    {
-                        AuxResultEmbeds.Add(new EmbedBuilder()
-                            .WithTitle($"Failed to login to the following sessions").WithColor(Color.Red)
-                            .WithDescription(string.Join("\n", failedLogins)).Build());
-                    }
-                    if (AuxResultEmbeds.Count > 0)
-                    {
-                        await command.ModifyOriginalResponseAsync(msg =>
-                        {
-                            Embed[] embeds = [.. msg.Embeds.Value, .. AuxResultEmbeds];
-                            msg.Embeds = embeds;
-                        });
-                    }
+                    ReconnectAuxiliarySessions(Data, discordBot, CreatedSession!, connectionCache.AuxiliarySessions);
                 }
             }
         }
@@ -221,6 +188,37 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
                         $"{ex}"
                         ).WithColor(Color.Red).Build());
+                }
+            }
+
+            internal static void ReconnectAuxiliarySessions(CommandData.CommandDataModel Data, DiscordBot discordBot, Sessions.ActiveBotSession session, HashSet<string> AuxiliarySessions)
+            {
+                HashSet<PlayerInfo> AuxiliarySlots = [];
+                foreach (var Slot in AuxiliarySessions)
+                {
+                    var slotInfo = session.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == Slot);
+                    if (slotInfo is null) continue;
+                    AuxiliarySlots.Add(slotInfo);
+                }
+                session.ConnectAuxiliarySessions(AuxiliarySlots, out var failedLogins, out var createdSessions);
+                discordBot.UpdateConnectionCache(Data.TextChannel!.Id);
+
+                List<Embed> AuxResultEmbeds = [];
+                if (createdSessions.Count > 0)
+                {
+                    AuxResultEmbeds.Add(new EmbedBuilder()
+                        .WithTitle($"The following auxiliary sessions were created").WithColor(Color.Green)
+                        .WithDescription(string.Join("\n", createdSessions)).Build());
+                }
+                if (failedLogins.Count > 0)
+                {
+                    AuxResultEmbeds.Add(new EmbedBuilder()
+                        .WithTitle($"Failed to login to the following auxiliary sessions").WithColor(Color.Red)
+                        .WithDescription(string.Join("\n", failedLogins)).Build());
+                }
+                if (AuxResultEmbeds.Count > 0)
+                {
+                    session.QueueMessageForChannel(new QueuedMessage(AuxResultEmbeds));
                 }
             }
         }

@@ -72,18 +72,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                         else ValidSlots.Add(playerInfo);
                     }
                 }
-                await command.RespondAsync(string.Join("\n", ValidSlots.Select(x => x.Name).CreateResultList("Attempting to add auxiliary connections for")));
+                if (ValidSlots.Count == 0)
+                {
+                    await command.RespondAsync($"No valid slots given");
+                    return;
+                }
+                await command.RespondAsync(embed: ValidSlots.Select(x => x.Name).CreateEmbedResultsList("Attempting to add auxiliary connections for"));
 
                 session.ConnectAuxiliarySessions(ValidSlots, out HashSet<string> FailedLogins, out var CreatedSessions);
 
-                List<string> MessageParts =
-                    [
-                    ..CreatedSessions.CreateResultList($"The following sessions were created"),
-                    ..FailedLogins.CreateResultList($"Failed to login to the following sessions"),
-                    ..AlreadyConnectedSlots.CreateResultList($"The following slots already had auxiliary connection"),
-                    ..InvalidSlotNames.CreateResultList($"The following slots were not valid in the connected AP server"),
-                    ];
-                await command.ModifyOriginalResponseAsync(x => x.Content = String.Join("\n", MessageParts));
+                var Result = CommandHelpers.CreateCommandResultEmbed("Add Auxiliary Sessions Results", Color.Green,
+                    ("Sessions Created", CreatedSessions),
+                    ("Failed Logins", FailedLogins),
+                    ("Already Connected", AlreadyConnectedSlots),
+                    ("Invalid Slot Name", InvalidSlotNames));
+
+                await command.ModifyOriginalResponseAsync(x => x.Embed = Result.Build());
             }
 
             async Task Remove(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot, CommandData.CommandDataModel commandData, ActiveBotSession session)
@@ -96,7 +100,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     [.. session!.AuxiliarySessions.Keys] :
                     [.. SlotArgs.TrimSplit(",")];
 
-                await command.RespondAsync(string.Join("\n", SessionToRemove.CreateResultList("Attempting to disconnect auxiliary connections for")));
+                await command.RespondAsync(embed: SessionToRemove.CreateEmbedResultsList("Attempting to disconnect auxiliary connections for"));
 
                 //Results
                 HashSet<string> RemovedSessions = [];
@@ -116,12 +120,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     }
                 }
 
-                List<string> MessageParts =
-                    [
-                    ..RemovedSessions.CreateResultList($"The following sessions were removed"),
-                    ..NotConnectedSlots.CreateResultList($"The following slots did not have an auxiliary connection"),
-                    ];
-                await command.ModifyOriginalResponseAsync(x => x.Content = String.Join("\n", MessageParts));
+                var Result = CommandHelpers.CreateCommandResultEmbed("Remove Auxiliary Sessions Results", Color.Green,
+                    ("Removed Sessions", RemovedSessions),
+                    ("Session not Found", NotConnectedSlots));
+
+                await command.ModifyOriginalResponseAsync(x => x.Embed = Result.Build());
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
 using Discord.WebSocket;
+using Newtonsoft.Json.Linq;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
@@ -80,6 +81,30 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         {
             if (!Values.Any()) return [];
             return [Header, .. Values.Select(x => $"-{x}")];
+        }
+
+        public static Embed CreateEmbedResultsList(this IEnumerable<string> Values, string Header, Color? color = null)
+        {
+            var builder = new EmbedBuilder().WithTitle(Header).WithDescription(string.Join("\n", Values));
+            if (color is Color c) builder.WithColor(c);
+            return builder.Build();
+        }
+
+        public static EmbedBuilder CreateCommandResultEmbed(string Title, Color? color, params (string name, IEnumerable<string> values)[] fields)
+        {
+            var embed = new EmbedBuilder()
+                    .WithTitle("Add Auxiliary Sessions Results")
+                    .WithCurrentTimestamp();
+            if (color is Color c) embed.WithColor(c);
+
+            foreach (var (name, values) in fields) 
+            { 
+                if (values.Any())
+                {
+                    embed.AddField(name, string.Join("\n", values), false);
+                }
+            }
+            return embed;
         }
 
         public enum AddRemoveAction

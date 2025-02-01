@@ -81,7 +81,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 session.ConnectAuxiliarySessions(ValidSlots, out HashSet<string> FailedLogins, out var CreatedSessions);
 
-                var Result = CommandHelpers.CreateCommandResultEmbed("Add Auxiliary Sessions Results", Color.Green,
+                int SuccessAmount = CreatedSessions.Count;
+                int ErrorAmount = FailedLogins.Count + AlreadyConnectedSlots.Count + InvalidSlotNames.Count;
+                Color color = Color.Red;
+                if (SuccessAmount > 0 && ErrorAmount == 0) color = Color.Green;
+                else if (SuccessAmount == 0 || ErrorAmount > 0) color = (SuccessAmount > 0) ? Color.Orange : Color.Red;
+
+                var Result = CommandHelpers.CreateCommandResultEmbed("Add Auxiliary Sessions Results",
+                    color,
                     ("Sessions Created", CreatedSessions),
                     ("Failed Logins", FailedLogins),
                     ("Already Connected", AlreadyConnectedSlots),

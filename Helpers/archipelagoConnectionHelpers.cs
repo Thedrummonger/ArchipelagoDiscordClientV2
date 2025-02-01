@@ -4,6 +4,7 @@ using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
+using Discord.WebSocket;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
@@ -154,6 +155,63 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
             discordBot.DiscordAPIQueue.IsProcessing = false;
             await Task.Delay(2000);
+        }
+
+        public static bool ConnectToAPServer(
+            DiscordBot discordBot, 
+            ISocketMessageChannel channel, 
+            Sessions.SessionConstructor sessionConstructor,
+            out string Message)
+        {
+            try
+            {
+                var session = ArchipelagoSessionFactory.CreateSession(sessionConstructor.ArchipelagoConnectionInfo!.IP, sessionConstructor.ArchipelagoConnectionInfo!.Port);
+
+                LoginResult result = session.TryConnectAndLogin(
+                    null, //Game is not needed since we connect with the TextOnly Tag
+                    sessionConstructor.ArchipelagoConnectionInfo!.Name,
+                    ItemsHandlingFlags.AllItems,
+                    Constants.APVersion,
+                    ["TextOnly"], null,
+                    sessionConstructor.ArchipelagoConnectionInfo!.Password,
+                    true);
+
+                if (result is LoginFailure failure)
+                {
+                    var errors = string.Join("\n", failure.Errors);
+                    Message =
+                        $"Failed to connect to Archipelago server at " +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
+                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
+                        $"{errors}";
+                    return false;
+                }
+
+                var NewSession = new Sessions.ActiveBotSession(sessionConstructor, discordBot, channel, session);
+                discordBot.ActiveSessions[channel.Id] = NewSession;
+
+                discordBot.UpdateConnectionCache(channel.Id, sessionConstructor);
+
+                NewSession.CreateArchipelagoHandlers();
+                _ = NewSession.MessageQueue.ProcessChannelMessages();
+
+                Message = $"Successfully connected channel {channel.Name} to Archipelago server at " +
+                    $"{NewSession.ArchipelagoSession.Socket.Uri.Host}:" +
+                    $"{NewSession.ArchipelagoSession.Socket.Uri.Port} as " +
+                    $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Name} playing " +
+                    $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Game}.";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Message = $"Failed to connect to Archipelago server at " +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
+                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
+                    $"{ex}";
+                return false;
+            }
         }
 
         public static void ConnectAuxiliarySessions(this Sessions.ActiveBotSession session, HashSet<PlayerInfo> Slots, out HashSet<string> FailedLogins, out HashSet<string> CreatedSessions)

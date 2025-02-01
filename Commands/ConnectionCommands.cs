@@ -7,6 +7,7 @@ using Discord;
 using Discord.WebSocket;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
+using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
@@ -52,7 +53,19 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     Settings = discordBot.appSettings.AppDefaultSettings
                 };
 
-                await ConnectToAPServer(command, discordBot, SessionInfo);
+                await command.RespondAsync(embed: new EmbedBuilder().WithDescription($"Connecting {Data.ChannelName} to " +
+                $"{SessionInfo.ArchipelagoConnectionInfo!.IP}:" +
+                    $"{SessionInfo.ArchipelagoConnectionInfo!.Port} as " +
+                    $"{SessionInfo.ArchipelagoConnectionInfo!.Name}").Build());
+
+                var connectionResult = ArchipelagoConnectionHelpers.ConnectToAPServer(discordBot, Data.TextChannel!, SessionInfo, out var resultMessage);
+
+                await command.ModifyOriginalResponseAsync(msg => msg.Embed = new EmbedBuilder()
+                    .WithTitle(connectionResult ? "Connection Successful" : "Connection Failure")
+                    .WithDescription(resultMessage)
+                    .WithColor(connectionResult ? Color.Green : Color.Red)
+                    .WithCurrentTimestamp()
+                    .Build());
             }
         }
 
@@ -73,20 +86,68 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
 
-                if (!discordBot.ConnectionCache.TryGetValue(Data.TextChannel!.Id, out Sessions.SessionConstructor? connectionCache) || connectionCache is null)
+                if (!discordBot.ConnectionCache.TryGetValue(Data.TextChannel!.Id, out SessionConstructor? SessionInfo) || SessionInfo is null)
                 {
                     await command.RespondAsync(embed: new EmbedBuilder().WithDescription("No previous connection cached for this channel").WithColor(Color.Red).Build(), ephemeral: true);
                     return;
                 }
 
-                await ConnectToAPServer(command, discordBot, connectionCache);
+                var ReconnectAuxiliaryArg = Data.GetArg("auxiliary")?.GetValue<bool>() ?? false;
 
-                var ReconnectAuxiliary = Data.GetArg("auxiliary")?.GetValue<bool>() ?? false;
-                var SessionCreated = discordBot.ActiveSessions.TryGetValue(Data.TextChannel!.Id, out var CreatedSession);
-                if (SessionCreated && ReconnectAuxiliary)
+                await command.RespondAsync(embed: new EmbedBuilder().WithDescription($"Connecting {Data.ChannelName} to " +
+                $"{SessionInfo.ArchipelagoConnectionInfo!.IP}:" +
+                    $"{SessionInfo.ArchipelagoConnectionInfo!.Port} as " +
+                    $"{SessionInfo.ArchipelagoConnectionInfo!.Name}").Build());
+
+                var connectionResult = ArchipelagoConnectionHelpers.ConnectToAPServer(discordBot, Data.TextChannel!, SessionInfo, out var resultMessage);
+
+                var ResultEmbed = new EmbedBuilder()
+                    .WithTitle(connectionResult ? "Connection Successful" : "Connection Failure")
+                    .WithDescription(resultMessage)
+                    .WithColor(connectionResult ? Color.Green : Color.Red)
+                    .WithCurrentTimestamp();
+
+                await command.ModifyOriginalResponseAsync(msg => msg.Embed = ResultEmbed.Build());
+                if (!connectionResult) return;
+
+                var Session = discordBot.ActiveSessions[Data.TextChannel!.Id];
+
+                if (ReconnectAuxiliaryArg && SessionInfo.AuxiliarySessions.Count > 0)
                 {
-                    ReconnectAuxiliarySessions(Data, discordBot, CreatedSession!, connectionCache.AuxiliarySessions);
+                    var Embeds = await ReconnectAuxiliary(command, SessionInfo, ResultEmbed, Session, discordBot);
                 }
+            }
+
+            private static async Task<EmbedBuilder[]> ReconnectAuxiliary(
+                SocketSlashCommand command, 
+                SessionConstructor SessionInfo, 
+                EmbedBuilder ResultEmbed, 
+                ActiveBotSession Session, 
+                DiscordBot discordBot)
+            {
+                EmbedBuilder AuxiliaryEmbed = new EmbedBuilder()
+                    .WithDescription("Adding Auxiliary Sessions")
+                    .AddField("Sessions", string.Join("\n", SessionInfo.AuxiliarySessions));
+                EmbedBuilder[] SendEmbeds = [ResultEmbed, AuxiliaryEmbed];
+                await command.ModifyOriginalResponseAsync(msg => msg.Embeds = SendEmbeds.Select(x => x.Build()).ToArray());
+                HashSet<PlayerInfo> AuxiliarySlots = [];
+                foreach (var Slot in SessionInfo.AuxiliarySessions)
+                {
+                    var slotInfo = Session.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == Slot);
+                    if (slotInfo is null) continue;
+                    AuxiliarySlots.Add(slotInfo);
+                }
+                Session.ConnectAuxiliarySessions(AuxiliarySlots, out var failedLogins, out var createdSessions);
+                Color color = failedLogins.Count == 0 ? Color.Green : (createdSessions.Count == 0 ? Color.Red : Color.Orange);
+                discordBot.UpdateConnectionCache(Session.DiscordChannel.Id);
+                AuxiliaryEmbed = CommandHelpers.CreateCommandResultEmbed(
+                    "Add Auxiliary Sessions Results",
+                    color,
+                    ("Sessions Created", createdSessions),
+                    ("Failed Logins", failedLogins));
+                SendEmbeds = [ResultEmbed, AuxiliaryEmbed];
+                await command.ModifyOriginalResponseAsync(msg => msg.Embeds = SendEmbeds.Select(x => x.Build()).ToArray());
+                return SendEmbeds;
             }
         }
 
@@ -125,102 +186,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             public bool IsDebugCommand => false;
 
-            internal async Task ConnectToAPServer(SocketSlashCommand command, DiscordBot discordBot, Sessions.SessionConstructor sessionConstructor)
-            {
-                var Data = command.GetCommandData();
-
-                await command.RespondAsync(embed: new EmbedBuilder().WithDescription($"Connecting {Data.ChannelName} to " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
-                    $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}").Build());
-
-                // Create a new session
-                try
-                {
-                    var session = ArchipelagoSessionFactory.CreateSession(sessionConstructor.ArchipelagoConnectionInfo!.IP, sessionConstructor.ArchipelagoConnectionInfo!.Port);
-
-                    LoginResult result = session.TryConnectAndLogin(
-                        null, //Game is not needed since we connect with the TextOnly Tag
-                        sessionConstructor.ArchipelagoConnectionInfo!.Name,
-                        ItemsHandlingFlags.AllItems,
-                        Constants.APVersion,
-                        ["TextOnly"], null,
-                        sessionConstructor.ArchipelagoConnectionInfo!.Password,
-                        true);
-
-                    if (result is LoginFailure failure)
-                    {
-                        var errors = string.Join("\n", failure.Errors);
-                        await command.ModifyOriginalResponseAsync(msg => msg.Embed = new EmbedBuilder().WithDescription(
-                            $"Failed to connect to Archipelago server at " +
-                            $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
-                            $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
-                            $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
-                            $"{errors}"
-                            ).WithColor(Color.Red).Build());
-                        return;
-                    }
-
-                    var NewSession = new Sessions.ActiveBotSession(sessionConstructor, discordBot, Data.TextChannel!, session);
-                    discordBot.ActiveSessions[Data.ChannelId] = NewSession;
-
-                    discordBot.UpdateConnectionCache(Data.ChannelId, sessionConstructor);
-
-                    NewSession.CreateArchipelagoHandlers();
-                    _ = NewSession.MessageQueue.ProcessChannelMessages();
-
-                    var SuccessMessage = $"Successfully connected channel {Data.ChannelName} to Archipelago server at " +
-                        $"{NewSession.ArchipelagoSession.Socket.Uri.Host}:" +
-                        $"{NewSession.ArchipelagoSession.Socket.Uri.Port} as " +
-                        $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Name} playing " +
-                        $"{NewSession.ArchipelagoSession.Players.ActivePlayer.Game}.";
-
-                    Console.WriteLine(SuccessMessage);
-                    await command.ModifyOriginalResponseAsync(msg => msg.Embed = new EmbedBuilder()
-                        .WithDescription(SuccessMessage).WithColor(Color.Green).Build());
-                }
-                catch (Exception ex)
-                {
-                    await command.ModifyOriginalResponseAsync(msg => msg.Embed = new EmbedBuilder().WithDescription(
-                        $"Failed to connect to Archipelago server at " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo!.IP}:" +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Port} as " +
-                        $"{sessionConstructor.ArchipelagoConnectionInfo!.Name}.\n" +
-                        $"{ex}"
-                        ).WithColor(Color.Red).Build());
-                }
-            }
-
-            internal static void ReconnectAuxiliarySessions(CommandData.CommandDataModel Data, DiscordBot discordBot, Sessions.ActiveBotSession session, HashSet<string> AuxiliarySessions)
-            {
-                HashSet<PlayerInfo> AuxiliarySlots = [];
-                foreach (var Slot in AuxiliarySessions)
-                {
-                    var slotInfo = session.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == Slot);
-                    if (slotInfo is null) continue;
-                    AuxiliarySlots.Add(slotInfo);
-                }
-                session.ConnectAuxiliarySessions(AuxiliarySlots, out var failedLogins, out var createdSessions);
-                discordBot.UpdateConnectionCache(Data.TextChannel!.Id);
-
-                List<Embed> AuxResultEmbeds = [];
-                if (createdSessions.Count > 0)
-                {
-                    AuxResultEmbeds.Add(new EmbedBuilder()
-                        .WithTitle($"The following auxiliary sessions were created").WithColor(Color.Green)
-                        .WithDescription(string.Join("\n", createdSessions)).Build());
-                }
-                if (failedLogins.Count > 0)
-                {
-                    AuxResultEmbeds.Add(new EmbedBuilder()
-                        .WithTitle($"Failed to login to the following auxiliary sessions").WithColor(Color.Red)
-                        .WithDescription(string.Join("\n", failedLogins)).Build());
-                }
-                if (AuxResultEmbeds.Count > 0)
-                {
-                    session.QueueMessageForChannel(new QueuedMessage(AuxResultEmbeds));
-                }
-            }
+            
         }
     }
 }

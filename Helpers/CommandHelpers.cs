@@ -83,6 +83,13 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             return [Header, .. Values.Select(x => $"-{x}")];
         }
 
+        /// <summary>
+        /// Creates a Discord embed from a list of values with a specified header and optional color.
+        /// </summary>
+        /// <param name="Values">A collection of strings representing the values to display in the embed.</param>
+        /// <param name="Header">The title/header of the embed.</param>
+        /// <param name="color">An optional <see cref="Color"/> for the embed. If not provided, the default embed color is used.</param>
+        /// <returns>An <see cref="Embed"/> containing the provided values.</returns>
         public static Embed CreateEmbedResultsList(this IEnumerable<string> Values, string Header, Color? color = null)
         {
             var builder = new EmbedBuilder().WithTitle(Header).WithDescription(string.Join("\n", Values));
@@ -90,11 +97,19 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             return builder.Build();
         }
 
-        public static EmbedBuilder CreateCommandResultEmbed(string Title, Color? color, params (string name, IEnumerable<string> values)[] fields)
+        /// <summary>
+        /// Creates a formatted Discord embed with a title, description, color, and multiple optional fields.
+        /// </summary>
+        /// <param name="title">The title of the embed. If null or empty, no title is set.</param>
+        /// <param name="description">The main description of the embed. If null or empty, no description is set.</param>
+        /// <param name="color">An optional <see cref="Color"/> for the embed. If not provided, the default embed color is used.</param>
+        /// <param name="fields">An array of named fields where each field contains a name and a collection of values.</param>
+        /// <returns>An <see cref="EmbedBuilder"/> containing the specified content.</returns>
+        public static EmbedBuilder CreateCommandResultEmbed(string? title, string? description, Color? color, params (string name, IEnumerable<string> values)[] fields)
         {
-            var embed = new EmbedBuilder()
-                    .WithTitle("Add Auxiliary Sessions Results")
-                    .WithCurrentTimestamp();
+            var embed = new EmbedBuilder().WithCurrentTimestamp();
+            if (!string.IsNullOrWhiteSpace(title)) embed.WithTitle(title);
+            if (!string.IsNullOrWhiteSpace(description)) embed.WithDescription(description);
             if (color is Color c) embed.WithColor(c);
 
             foreach (var (name, values) in fields) 

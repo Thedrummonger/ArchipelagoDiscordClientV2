@@ -81,14 +81,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 session.ConnectAuxiliarySessions(ValidSlots, out HashSet<string> FailedLogins, out var CreatedSessions);
 
-                int SuccessAmount = CreatedSessions.Count;
-                int ErrorAmount = FailedLogins.Count + AlreadyConnectedSlots.Count + InvalidSlotNames.Count;
-                Color color = Color.Red;
-                if (SuccessAmount > 0 && ErrorAmount == 0) color = Color.Green;
-                else if (SuccessAmount == 0 || ErrorAmount > 0) color = (SuccessAmount > 0) ? Color.Orange : Color.Red;
-
                 var Result = CommandHelpers.CreateCommandResultEmbed("Add Auxiliary Sessions Results",
-                    color,
+                    null,
+                    ColorHelpers.GetResultEmbedStatusColor(CreatedSessions.Count, FailedLogins.Count + AlreadyConnectedSlots.Count + InvalidSlotNames.Count),
                     ("Sessions Created", CreatedSessions),
                     ("Failed Logins", FailedLogins),
                     ("Already Connected", AlreadyConnectedSlots),
@@ -127,7 +122,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     }
                 }
 
-                var Result = CommandHelpers.CreateCommandResultEmbed("Remove Auxiliary Sessions Results", Color.Green,
+                var Result = CommandHelpers.CreateCommandResultEmbed("Remove Auxiliary Sessions Results", null,
+                    ColorHelpers.GetResultEmbedStatusColor(RemovedSessions, NotConnectedSlots),
                     ("Removed Sessions", RemovedSessions),
                     ("Session not Found", NotConnectedSlots));
 

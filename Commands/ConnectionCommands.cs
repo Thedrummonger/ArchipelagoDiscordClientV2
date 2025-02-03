@@ -138,11 +138,12 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     AuxiliarySlots.Add(slotInfo);
                 }
                 Session.ConnectAuxiliarySessions(AuxiliarySlots, out var failedLogins, out var createdSessions);
-                Color color = failedLogins.Count == 0 ? Color.Green : (createdSessions.Count == 0 ? Color.Red : Color.Orange);
                 discordBot.UpdateConnectionCache(Session.DiscordChannel.Id);
+
                 AuxiliaryEmbed = CommandHelpers.CreateCommandResultEmbed(
                     "Add Auxiliary Sessions Results",
-                    color,
+                    null,
+                    ColorHelpers.GetResultEmbedStatusColor(createdSessions, failedLogins),
                     ("Sessions Created", createdSessions),
                     ("Failed Logins", failedLogins));
                 SendEmbeds = [ResultEmbed, AuxiliaryEmbed];

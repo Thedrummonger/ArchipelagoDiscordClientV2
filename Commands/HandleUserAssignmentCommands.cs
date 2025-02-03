@@ -74,7 +74,9 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     else alreadyAssigned.Add(player);
                 }
 
-                var Result = CommandHelpers.CreateCommandResultEmbed("User Assignment Results", Color.Green,
+                var Result = CommandHelpers.CreateCommandResultEmbed("User Assignment Results", 
+                    null,
+                    ColorHelpers.GetResultEmbedStatusColor(addedPlayers.Count, alreadyAssigned.Count + invalidPlayers.Count),
                     ("Added Players", addedPlayers),
                     ("Already Assigned Players", alreadyAssigned),
                     ("Invalid Players", invalidPlayers));
@@ -118,7 +120,8 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 if (activeSession.Settings.SlotAssociations[user.Id].Count == 0)
                     activeSession.Settings.SlotAssociations.Remove(user.Id);
 
-                var Result = CommandHelpers.CreateCommandResultEmbed("User assignment removal Results", Color.Green,
+                var Result = CommandHelpers.CreateCommandResultEmbed("User assignment removal Results", null, 
+                    ColorHelpers.GetResultEmbedStatusColor(validRemovals, invalidRemovals),
                     ("Removed Players", validRemovals),
                     ("Invalid Players", invalidRemovals));
 

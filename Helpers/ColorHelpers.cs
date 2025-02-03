@@ -23,6 +23,31 @@
             return $"{Parts.Item1}{input}{Parts.Item2}";
         }
         /// <summary>
+        /// Determines the appropriate Discord embed color based on the number of successes and failures in the given collections.
+        /// </summary>
+        /// <param name="successes">An <see cref="IEnumerable{object}"/> containing successful operations.</param>
+        /// <param name="failures">An <see cref="IEnumerable{object}"/> containing failed operations.</param>
+        /// <returns>
+        /// <see cref="Discord.Color.Green"/> if there are no failures,
+        /// <see cref="Discord.Color.Orange"/> if there are both successes and failures,
+        /// and <see cref="Discord.Color.Red"/> if there are only failures.
+        /// </returns>
+        public static Discord.Color GetResultEmbedStatusColor(IEnumerable<object> successes, IEnumerable<object> failures) =>
+            GetResultEmbedStatusColor(successes.Count(), failures.Count());
+        /// <summary>
+        /// Determines the appropriate Discord embed color based on success and failure counts.
+        /// </summary>
+        /// <param name="successCount">The number of successful operations.</param>
+        /// <param name="failureCount">The number of failed operations.</param>
+        /// <returns>
+        /// <see cref="Discord.Color.Green"/> if there are no failures,
+        /// <see cref="Discord.Color.Orange"/> if there are both successes and failures,
+        /// and <see cref="Discord.Color.Red"/> if there are only failures.
+        /// </returns>
+        public static Discord.Color GetResultEmbedStatusColor(int successCount, int failureCount) =>
+            failureCount == 0 ? Discord.Color.Green : successCount > 0 ? Discord.Color.Orange : Discord.Color.Red;
+
+        /// <summary>
         /// Predefined color mappings for hint-related messages.
         /// </summary>
         public class Hints

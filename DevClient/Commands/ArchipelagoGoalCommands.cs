@@ -1,14 +1,14 @@
 ﻿using Archipelago.MultiClient.Net;
 using ArchipelagoDiscordClientLegacy.Data;
-using ArchipelagoDiscordClientLegacy.Helpers;
-using Discord;
 using Discord.WebSocket;
+using Discord;
 using System.Diagnostics;
-using TDMUtils;
+using ArchipelagoDiscordClientLegacy.Commands;
+using ArchipelagoDiscordClientLegacy.Helpers;
 
-namespace ArchipelagoDiscordClientLegacy.Commands
+namespace DevClient.Commands
 {
-    internal class DevCommands
+    internal class ArchipelagoGoalCommands
     {
         public class DevGoalCommand : ICommand
         {
@@ -46,25 +46,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
                 await command.RespondAsync($"Goaled ${SelectedAPSession.Players.ActivePlayer.Name} {SelectedAPSession.Players.ActivePlayer.Game}");
                 SelectedAPSession.SetGoalAchieved();
-            }
-        }
-
-        public class DevPrintAppSettingsCommand : ICommand
-        {
-            public string Name => "dev_print_app_settings";
-
-            public SlashCommandProperties Properties => new SlashCommandBuilder()
-                .WithName(Name)
-                .WithDescription("Prints the application app settings").Build();
-
-            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
-            {
-                if (!Debugger.IsAttached)
-                {
-                    await command.RespondAsync("This command is only available for debugging", ephemeral: true);
-                    return;
-                }
-                await command.RespondAsync($"```json\n{discordBot.appSettings.ToFormattedJson()}\n```");
             }
         }
     }

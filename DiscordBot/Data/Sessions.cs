@@ -36,6 +36,14 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public SessionSetting Settings { get; private set; }
             public ArchipelagoConnectionInfo ConnectionInfo { get; private set; }
             public ActiveSessionMessageQueue MessageQueue { get; private set; }
+            /// <summary>
+            /// A dictionary that allows external code to store arbitrary data associated with this object.
+            /// </summary>
+            /// <remarks>
+            /// This dictionary acts as an extensibility point, enabling external consumers of this API 
+            /// to attach custom data without modifying the object's structure.
+            /// </remarks>
+            public Dictionary<string, object> Metadata { get; private set; } = [];
         }
         /// <summary>
         /// Stores connection details required to connect to an Archipelago server.

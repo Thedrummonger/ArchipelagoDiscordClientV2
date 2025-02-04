@@ -13,12 +13,26 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
     public static class ArchipelagoConnectionHelpers
     {
         /// <summary>
+        /// Event triggered when CleanAndCloseChannel is about to start.
+        /// </summary>
+        public static event Action<ulong, DiscordBot>? OnChannelClosing;
+        /// <summary>
+        /// Event triggered when CleanAndCloseChannel has completed.
+        /// </summary>
+        public static event Action<ulong, DiscordBot>? OnChannelClosed;
+        /// <summary>
+        /// Event triggered when a new session is successfully created.
+        /// </summary>
+        public static event Action<ulong, DiscordBot, Sessions.ActiveBotSession>? OnSessionCreated;
+
+        /// <summary>
         /// Cleans up and closes an active Archipelago session associated with a specific Discord channel.
         /// </summary>
         /// <param name="bot">The Discord bot managing the session.</param>
         /// <param name="channelId">The Discord channel ID linked to the session.</param>
         public static async Task CleanAndCloseChannel(this DiscordBot bot, ulong channelId)
         {
+            OnChannelClosing?.Invoke(channelId, bot);
             if (!bot.ActiveSessions.TryGetValue(channelId, out var session)) { return; }
             bot.ActiveSessions.Remove(channelId);
             Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.ArchipelagoSession.Socket.Uri}");
@@ -31,6 +45,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 }
                 session.AuxiliarySessions.Clear();
             }
+            OnChannelClosed?.Invoke(channelId, bot);
         }
         /// <summary>
         /// Sets up message handlers for an auxiliary Archipelago session.
@@ -195,6 +210,8 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
                 NewSession.CreateArchipelagoHandlers();
                 _ = NewSession.MessageQueue.ProcessChannelMessages();
+
+                OnSessionCreated?.Invoke(channel.Id, discordBot, NewSession);
 
                 Message = $"Successfully connected channel {channel.Name} to Archipelago server at " +
                     $"{NewSession.ArchipelagoSession.Socket.Uri.Host}:" +

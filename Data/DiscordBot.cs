@@ -33,7 +33,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 commandRegistry = new CommandRegistry(this);
                 DiscordMessageHandler = new DiscordMessageHandlers(this);
                 DiscordAPIQueue = new BotAPIRequestQueue(this);
-                Client = new DiscordSocketClient(DiscordSocketConfig);
+                Client = new DiscordSocketClient(BotSocketConfig.GetConfig());
             }
 
             public DiscordSocketClient Client { get; private set; }
@@ -72,14 +72,20 @@ namespace ArchipelagoDiscordClientLegacy.Data
         /// <summary>
         /// Configures the Discord bot's settings, including logging levels and gateway intents.
         /// </summary>
-        public static readonly DiscordSocketConfig DiscordSocketConfig = new()
+        public static class BotSocketConfig
         {
-            LogLevel = Debugger.IsAttached ? LogSeverity.Debug : LogSeverity.Info,
-            GatewayIntents = GatewayIntents.GuildMessages |
-                            GatewayIntents.DirectMessages |
-                            GatewayIntents.Guilds |
-                            GatewayIntents.MessageContent |
-                            GatewayIntents.GuildIntegrations
-        };
+            private static LogSeverity _LogSeverity = LogSeverity.Info;
+            public static void SetLogLevel(LogSeverity logLevel) => _LogSeverity = logLevel;
+
+            public static DiscordSocketConfig GetConfig() => new()
+            {
+                LogLevel = _LogSeverity,
+                GatewayIntents = GatewayIntents.GuildMessages |
+                                GatewayIntents.DirectMessages |
+                                GatewayIntents.Guilds |
+                                GatewayIntents.MessageContent |
+                                GatewayIntents.GuildIntegrations
+            };
+        }
     }
 }

@@ -1,5 +1,4 @@
-﻿using ArchipelagoDiscordClient;
-using ArchipelagoDiscordClientLegacy.Data;
+﻿using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;

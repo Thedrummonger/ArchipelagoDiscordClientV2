@@ -2,7 +2,7 @@
 
 namespace ArchipelagoDiscordClientLegacy.Commands.ConsoleCommands
 {
-    internal interface IConsoleCommand
+    public interface IConsoleCommand
     {
         string Name { get; }
         void ExecuteCommand(DiscordBot discordBot);

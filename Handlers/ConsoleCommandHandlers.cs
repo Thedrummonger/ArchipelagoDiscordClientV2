@@ -3,7 +3,7 @@ using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
 {
-    internal class ConsoleCommandHandlers
+    public class ConsoleCommandHandlers
     {
         public static Dictionary<string, IConsoleCommand> ConsoleCommandRegistry = [];
         /// <summary>

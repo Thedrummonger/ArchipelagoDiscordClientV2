@@ -5,15 +5,12 @@ using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
-namespace ArchipelagoDiscordClient
+namespace ArchipelagoDiscordClientLegacy
 {
-    class Program
+    public class Program
     {
         public static bool ShowHeartbeat = false;
-        static async Task Main(string[] args)
-        {
-            await RunBotAsync();
-        }
+        static async Task Main(string[] args) => await RunBotAsync();
 
         public static async Task RunBotAsync()
         {

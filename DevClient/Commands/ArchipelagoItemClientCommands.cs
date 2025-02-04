@@ -54,7 +54,7 @@ namespace DevClient.Commands
                 HashSet<string> InvalidSlotNames = [];
 
                 HashSet<PlayerInfo> AllOtherPlayer = session!.ArchipelagoSession.Players.AllPlayers
-                    .Where(x => x.Slot != session.ArchipelagoSession.Players.ActivePlayer.Slot && x.Name != "Server").ToHashSet();
+                    .Where(x => x.Name != "Server").ToHashSet();
                 HashSet<PlayerInfo> ValidSlots = [];
 
                 if (!session.Metadata.TryGetValue(ItemManagementSessionManager.ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession)

@@ -19,8 +19,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .AddOption("player", ApplicationCommandOptionType.String, "Player to goal", false)
                 .WithDescription("Goals the current slot").Build();
 
-            public bool IsDebugCommand => true;
-
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out var session, out var commandData, out string result))
@@ -58,7 +56,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                 .WithDescription("Prints the application app settings").Build();
-            public bool IsDebugCommand => true;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {

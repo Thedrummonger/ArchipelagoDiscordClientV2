@@ -17,8 +17,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .AddOption("show_all", ApplicationCommandOptionType.Boolean, "Print all session in current guild", false)
                 .WithDescription("Show the active Archipelago session for this channel").Build();
 
-            public bool IsDebugCommand => false;
-
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel commandData, out string Error))

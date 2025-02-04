@@ -19,8 +19,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .WithName(Name)
                     .WithDescription("Prints the current sessions settings").Build();
 
-            public bool IsDebugCommand => false;
-
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? session, out CommandData.CommandDataModel Data, out string result))
@@ -62,8 +60,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 }
             }
 
-            public bool IsDebugCommand => false;
-
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, out Sessions.ActiveBotSession? ActiveSession, out CommandData.CommandDataModel Data, out string Error))
@@ -100,8 +96,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .WithDescription("Adds or removes ignored Client tags for this session")
                     .AddRemoveActionOption()
                     .AddOption("tags", ApplicationCommandOptionType.String, "Comma-separated tags", true).Build();
-
-            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {

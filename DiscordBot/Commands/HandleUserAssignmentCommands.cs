@@ -19,7 +19,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .AddRemoveActionOption()
                     .AddOption("user", ApplicationCommandOptionType.User, "Discord user", true)
                     .AddOption("players", ApplicationCommandOptionType.String, "Comma-separated player names", true).Build();
-            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {

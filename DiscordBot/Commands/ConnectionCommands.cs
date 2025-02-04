@@ -13,17 +13,17 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 {
     public static class ConnectionCommands
     {
-        public class ConnectCommand : IGenericConnectCommand
+        public class ConnectCommand : ICommand
         {
-            public override string Name => "connect";
-            public override SlashCommandProperties Properties => new SlashCommandBuilder()
+            public string Name => "connect";
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                     .WithDescription("Connect this channel to an Archipelago server")
                     .AddOption("address", ApplicationCommandOptionType.String, "Server address. formatted {ip}:{port}", true)
                     .AddOption("name", ApplicationCommandOptionType.String, "Slot Name of the connecting player", true)
                     .AddOption("password", ApplicationCommandOptionType.String, "Server password (optional)", false).Build();
 
-            public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, false, out CommandData.CommandDataModel Data, out string result))
                 {
@@ -69,16 +69,16 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             }
         }
 
-        public class ReConnectCommand : IGenericConnectCommand
+        public class ReConnectCommand : ICommand
         {
-            public override string Name => "reconnect";
+            public string Name => "reconnect";
 
-            public override SlashCommandProperties Properties => new SlashCommandBuilder()
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
                 .WithName(Name)
                 .AddOption("auxiliary", ApplicationCommandOptionType.Boolean, "Reconnect Auxiliary Session?", false)
                 .WithDescription("Connects to the server using the last known working connection info.").Build();
 
-            public override async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, false, out CommandData.CommandDataModel Data, out string result))
                 {
@@ -160,8 +160,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .WithName(Name)
                     .WithDescription("Disconnect this channel from the Archipelago server").Build();
 
-            public bool IsDebugCommand => false;
-
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {
                 if (!command.Validate(discordBot, true, out CommandData.CommandDataModel Data, out string result))
@@ -177,17 +175,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .WithDescription("Successfully disconnected from the Archipelago server.")
                     .WithColor(Color.Orange).Build());
             }
-        }
-
-        public abstract class IGenericConnectCommand : ICommand
-        {
-            public abstract string Name { get; }
-            public abstract SlashCommandProperties Properties { get; }
-            public abstract Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot);
-
-            public bool IsDebugCommand => false;
-
-            
         }
     }
 }

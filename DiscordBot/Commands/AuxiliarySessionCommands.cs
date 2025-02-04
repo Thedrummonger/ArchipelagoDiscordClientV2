@@ -21,7 +21,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .WithDescription("Adds or removes auxiliary connections to the given slots")
                     .AddRemoveActionOption()
                     .AddOption("slots", ApplicationCommandOptionType.String, "Slots to add or remove a auxiliary connection", false).Build();
-            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {
@@ -140,8 +139,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 .WithDescription("Sends a message as the given archipelago player")
                 .AddOption("slot", ApplicationCommandOptionType.String, "Slot to send as", true)
                 .AddOption("message", ApplicationCommandOptionType.String, "Message to send", true).Build();
-
-            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBotData.DiscordBot discordBot)
             {

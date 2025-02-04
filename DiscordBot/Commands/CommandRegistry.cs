@@ -56,7 +56,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
 
             foreach (var commandType in commandTypes)
             {
-                if (Activator.CreateInstance(commandType) is ICommand command && (!command.IsDebugCommand || Debugger.IsAttached))
+                if (Activator.CreateInstance(commandType) is ICommand command)
                 {
                     Console.WriteLine($"Registering Command: {command.Name}");
                     AddCommand(command);

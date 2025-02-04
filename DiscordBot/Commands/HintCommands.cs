@@ -20,7 +20,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .WithDescription("Shows all hint for the current player")
                     .AddOption("player", ApplicationCommandOptionType.String, "Player to get Hints for, defaults to connected player", false)
                     .AddOption("filter_found", ApplicationCommandOptionType.Boolean, "True: show only found, False: only not found. Leave blank for both", false).Build();
-            public bool IsDebugCommand => false;
 
             public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot)
             {

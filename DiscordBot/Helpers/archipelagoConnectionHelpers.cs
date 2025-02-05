@@ -15,11 +15,11 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// <summary>
         /// Event triggered when CleanAndCloseChannel is about to start.
         /// </summary>
-        public static event Action<ulong, DiscordBot>? OnChannelClosing;
+        public static event Action<ulong, DiscordBot, Sessions.ActiveBotSession>? OnChannelClosing;
         /// <summary>
         /// Event triggered when CleanAndCloseChannel has completed.
         /// </summary>
-        public static event Action<ulong, DiscordBot>? OnChannelClosed;
+        public static event Action<ulong, DiscordBot, Sessions.ActiveBotSession>? OnChannelClosed;
         /// <summary>
         /// Event triggered when a new session is successfully created.
         /// </summary>
@@ -32,20 +32,20 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// <param name="channelId">The Discord channel ID linked to the session.</param>
         public static async Task CleanAndCloseChannel(this DiscordBot bot, ulong channelId)
         {
-            OnChannelClosing?.Invoke(channelId, bot);
             if (!bot.ActiveSessions.TryGetValue(channelId, out var session)) { return; }
-            bot.ActiveSessions.Remove(channelId);
+
             Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.ArchipelagoSession.Socket.Uri}");
+            OnChannelClosing?.Invoke(channelId, bot, session);
+            bot.ActiveSessions.Remove(channelId);
             if (session.ArchipelagoSession.Socket.Connected) { await session.ArchipelagoSession.Socket.DisconnectAsync(); }
-            if (session.AuxiliarySessions.Count > 0)
+
+            foreach (var auxSession in session.AuxiliarySessions.Values)
             {
-                foreach (var auxSession in session.AuxiliarySessions.Values)
-                {
-                    if (auxSession.Socket.Connected) { await auxSession.Socket.DisconnectAsync(); }
-                }
-                session.AuxiliarySessions.Clear();
+                if (auxSession.Socket.Connected) { await auxSession.Socket.DisconnectAsync(); }
             }
-            OnChannelClosed?.Invoke(channelId, bot);
+            session.AuxiliarySessions.Clear();
+
+            OnChannelClosed?.Invoke(channelId, bot, session);
         }
         /// <summary>
         /// Sets up message handlers for an auxiliary Archipelago session.
@@ -58,18 +58,10 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
             void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
             {
+                if (message is not CommandResultLogMessage && message is not HintItemSendLogMessage) return;
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) return;
-                switch (message)
-                {
-                    case HintItemSendLogMessage hintItemSendLogMessage:
-                        var queuedMessage = new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession));
-                        botSession.QueueMessageForChannel(queuedMessage);
-                        break;
-                    case CommandResultLogMessage commandResultLogMessage:
-                        var Message = new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).Build());
-                        botSession.QueueMessageForChannel(Message);
-                        break;
-                }
+
+                botSession.QueueMessageForChannel(message.FormatLogMessage(botSession));
             }
         }
         /// <summary>
@@ -99,18 +91,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             {
                 if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
 
-                MessageQueueData.IQueuedMessage queuedMessage = message switch
-                {
-                    ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
-                    JoinLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Green).Build()),
-                    LeaveLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Red).Build()),
-                    CollectLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Blue).Build()),
-                    ReleaseLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Blue).Build()),
-                    GoalLogMessage => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).WithColor(Color.Gold).Build()),
-                    ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),
-                    _ => new MessageQueueData.QueuedMessage(new EmbedBuilder().WithDescription(message.ToString()).Build()),
-                };
-                botSession.QueueMessageForChannel(queuedMessage);
+                botSession.QueueMessageForChannel(message.FormatLogMessage(botSession));
             }
         }
 

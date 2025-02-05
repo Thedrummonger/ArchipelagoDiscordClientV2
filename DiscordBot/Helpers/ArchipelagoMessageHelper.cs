@@ -1,4 +1,5 @@
 ﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
+using ArchipelagoDiscordClientLegacy.Data;
 using System.Text.RegularExpressions;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
@@ -169,6 +170,22 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             //Remove single quotes if present, otherwise return as-is.
             var processedTags = rawTags.Select(part => part.StartsWith("'") && part.EndsWith("'") ? part[1..^1] : part);
             return processedTags.ToHashSet();
+        }
+
+        public static MessageQueueData.IQueuedMessage FormatLogMessage(this LogMessage message, ActiveBotSession botSession)
+        {
+            return message switch
+            {
+                ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
+                JoinLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Green).Build()),
+                LeaveLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Red).Build()),
+                CollectLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).Build()),
+                ReleaseLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).Build()),
+                GoalLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Gold).Build()),
+                ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),
+                CommandResultLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).Build()),
+                _ => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).Build()),
+            };
         }
     }
 }

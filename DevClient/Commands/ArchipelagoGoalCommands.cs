@@ -73,7 +73,7 @@ namespace DevClient.Commands
                     return;
                 }
 
-                if (!session!.Metadata.TryGetValue(ItemManagementSessionManager.ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession)
+                if (!session!.Metadata.TryGetValue(ItemManagementSession.ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession)
                 {
                     await command.RespondAsync("Unhandled error, ItemManagementSession Metadata did not exist", ephemeral: true);
                     return;

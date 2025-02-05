@@ -9,11 +9,14 @@ namespace DevClient
         {
             BotSocketConfig.SetLogLevel(LogSeverity.Debug);
 
-            ItemManagementSessionManager itemManagementSessionManager = new();
-            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnSessionCreated += 
-                itemManagementSessionManager.ArchipelagoConnectionHelpers_OnSessionCreated;
-            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnChannelClosing += 
-                itemManagementSessionManager.ArchipelagoConnectionHelpers_OnChannelClosing;
+            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnSessionCreated += (c, b, s) =>
+            {
+                ItemManagementSession.CreateItemManagementSession(b, c, s);
+            };
+            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnChannelClosed += (c, b, s) =>
+            {
+                ItemManagementSession.CloseItemManagementSessions(s);
+            };
 
             await ArchipelagoDiscordClientLegacy.Program.RunBotAsync();
         }

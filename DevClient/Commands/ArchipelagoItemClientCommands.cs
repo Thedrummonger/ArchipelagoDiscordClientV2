@@ -57,7 +57,7 @@ namespace DevClient.Commands
                     .Where(x => x.Name != "Server").ToHashSet();
                 HashSet<PlayerInfo> ValidSlots = [];
 
-                if (!session.Metadata.TryGetValue(ItemManagementSessionManager.ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession)
+                if (!session.Metadata.TryGetValue(ItemManagementSession.ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession)
                 {
                     await command.RespondAsync("Unhandled error, ItemManagementSession Metadata did not exist", ephemeral: true);
                     return;
@@ -101,7 +101,7 @@ namespace DevClient.Commands
             {
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
-                if (!session.Metadata.TryGetValue(ItemManagementSessionManager.ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession)
+                if (!session.Metadata.TryGetValue(ItemManagementSession.ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession)
                 {
                     await command.RespondAsync("Unhandled error, ItemManagementSession Metadata did not exist", ephemeral: true);
                     return;

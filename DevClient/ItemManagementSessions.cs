@@ -4,18 +4,21 @@ using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 
 namespace DevClient
 {
-    internal class ItemManagementSessionManager
+
+    internal class ItemManagementSession(DiscordBot discordBot, ulong channelID)
     {
         public static readonly string ManagerMetadataKey = "ItemManagementSessionManager";
-        public void ArchipelagoConnectionHelpers_OnSessionCreated(ulong channelId, DiscordBot bot, Sessions.ActiveBotSession session)
+        public DiscordBot Bot = discordBot;
+        public ulong ChannelID = channelID;
+        public Dictionary<string, ArchipelagoSession> ActiveItemClientSessions = [];
+        public static void CreateItemManagementSession(DiscordBot discordBot, ulong channelID, Sessions.ActiveBotSession session)
         {
-            var ItemManagementSession = new ItemManagementSession();
+            var ItemManagementSession = new ItemManagementSession(discordBot, channelID);
             session.Metadata[ManagerMetadataKey] = ItemManagementSession;
         }
 
-        public async void ArchipelagoConnectionHelpers_OnChannelClosing(ulong channelId, DiscordBot bot)
+        public static async void CloseItemManagementSessions(Sessions.ActiveBotSession session)
         {
-            if (!bot.ActiveSessions.TryGetValue(channelId, out var session)) return;
             if (!session.Metadata.TryGetValue(ManagerMetadataKey, out var v) || v is not ItemManagementSession itemManagementSession) return;
             ArchipelagoSession[] ActiveSessions = [.. itemManagementSession.ActiveItemClientSessions.Values];
             foreach (var itemClientSession in ActiveSessions)
@@ -24,10 +27,5 @@ namespace DevClient
             }
             itemManagementSession.ActiveItemClientSessions.Clear();
         }
-    }
-
-    internal class ItemManagementSession
-    {
-        public Dictionary<string, ArchipelagoSession> ActiveItemClientSessions = [];
     }
 }

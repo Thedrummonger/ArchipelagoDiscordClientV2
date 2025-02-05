@@ -10,9 +10,9 @@ namespace ArchipelagoDiscordClientLegacy
     public class Program
     {
         public static bool ShowHeartbeat = false;
-        static async Task Main(string[] args) => await RunBotAsync();
+        static async Task Main(string[] args) => await RunBotAsync(args);
 
-        public static async Task RunBotAsync()
+        public static async Task RunBotAsync(string[] args)
         {
             if (!Path.Exists(Constants.Paths.BaseFilePath)) { Directory.CreateDirectory(Constants.Paths.BaseFilePath); }
             var Config = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConfigFile, new AppSettings(), true);

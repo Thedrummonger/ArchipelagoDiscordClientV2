@@ -18,7 +18,7 @@ namespace DevClient
                 ItemManagementSession.CloseItemManagementSessions(s);
             };
 
-            await ArchipelagoDiscordClientLegacy.Program.RunBotAsync();
+            await ArchipelagoDiscordClientLegacy.Program.RunBotAsync(args);
         }
     }
 }

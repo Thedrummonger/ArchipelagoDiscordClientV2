@@ -11,11 +11,12 @@ namespace DevClient
 
             ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnSessionCreated += (c, b, s) =>
             {
-                ItemManagementSession.CreateItemManagementSession(b, c, s);
+                s.Metadata[ItemManagementSession.ManagerMetadataKey] = new ItemManagementSession(b, c);
             };
             ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnChannelClosed += (c, b, s) =>
             {
-                ItemManagementSession.CloseItemManagementSessions(s);
+                if (s.Metadata.TryGetValue(ItemManagementSession.ManagerMetadataKey, out var v) && v is ItemManagementSession IMSession)
+                    IMSession.CloseAllConnections();
             };
 
             await ArchipelagoDiscordClientLegacy.Program.RunBotAsync(args);

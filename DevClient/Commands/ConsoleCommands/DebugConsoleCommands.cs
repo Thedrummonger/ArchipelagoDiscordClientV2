@@ -10,21 +10,10 @@ namespace DevClient.Commands.ConsoleCommands
         {
             public string Name => "show_heartbeat";
 
-            public void ExecuteCommand(DiscordBotData.DiscordBot discordBot)
+            public void ExecuteCommand(DiscordBotData.DiscordBot discordBot, string[] Args)
             {
                 ArchipelagoDiscordClientLegacy.Program.ShowHeartbeat = !ArchipelagoDiscordClientLegacy.Program.ShowHeartbeat;
                 Console.WriteLine($"Showing Heartbeat: {ArchipelagoDiscordClientLegacy.Program.ShowHeartbeat}");
-            }
-        }
-
-        public class HelpConsoleCommand : IConsoleCommand
-        {
-            public string Name => "help";
-
-            public void ExecuteCommand(DiscordBotData.DiscordBot discordBot)
-            {
-                var t = ConsoleCommandHandlers.ConsoleCommandRegistry.Keys.ToArray();
-                Console.WriteLine($"available commands:\n{string.Join("\n", t)}");
             }
         }
     }

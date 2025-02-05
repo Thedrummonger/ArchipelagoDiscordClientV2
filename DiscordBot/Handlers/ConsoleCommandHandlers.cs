@@ -5,7 +5,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
 {
     public class ConsoleCommandHandlers
     {
-        public static Dictionary<string, IConsoleCommand> ConsoleCommandRegistry = [];
+        public static Dictionary<string, IConsoleCommand> ConsoleCommandRegistry { get; } = [];
         /// <summary>
         /// Scans the application for all classes implementing <see cref="IConsoleCommand"/> 
         /// and registers them in the <see cref="ConsoleCommandRegistry"/>.
@@ -59,14 +59,16 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         /// <param name="input">The user's console input.</param>
         public static void ProcessConsoleCommand(DiscordBot botClient, string input)
         {
-            if (ConsoleCommandRegistry.TryGetValue(input, out IConsoleCommand? consoleCommand))
-            {
-                consoleCommand.ExecuteCommand(botClient);
-            }
+            if (string.IsNullOrWhiteSpace(input)) return;
+            var Parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (Parts.Length == 0) return;
+            var Command = Parts[0];
+            var Args = Parts.Skip(1).ToArray();
+
+            if (ConsoleCommandRegistry.TryGetValue(Command, out var consoleCommand))
+                consoleCommand.ExecuteCommand(botClient, Args);
             else
-            {
-                Console.WriteLine("Invalid Command");
-            }
+                Console.WriteLine($"Unknown Command: {Command}");
         }
     }
 }

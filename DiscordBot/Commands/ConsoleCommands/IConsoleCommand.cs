@@ -5,6 +5,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands.ConsoleCommands
     public interface IConsoleCommand
     {
         string Name { get; }
-        void ExecuteCommand(DiscordBot discordBot);
+        void ExecuteCommand(DiscordBot discordBot, string[] args);
     }
 }

@@ -9,7 +9,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands.ConsoleCommands
         {
             public string Name => "print_sessions";
 
-            public void ExecuteCommand(DiscordBotData.DiscordBot discordBot)
+            public void ExecuteCommand(DiscordBotData.DiscordBot discordBot, string[] Args)
             {
                 var SessionsInGuild = discordBot.ActiveSessions.Values.ToArray();
 

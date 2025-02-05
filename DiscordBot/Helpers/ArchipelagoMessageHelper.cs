@@ -2,6 +2,7 @@
 using ArchipelagoDiscordClientLegacy.Data;
 using System.Text.RegularExpressions;
 using TDMUtils;
+using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
 namespace ArchipelagoDiscordClientLegacy.Helpers
@@ -53,10 +54,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// </summary>
         /// <param name="message">The log message to format.</param>
         /// <returns>A string with color formatting applied.</returns>
-        public static string ToColoredString(this LogMessage message)
-        {
-            return string.Concat(message.Parts.Select(part => part.Text.SetColor(part.Color)));
-        }
+        public static string ToColoredString(this LogMessage message) => string.Concat(message.Parts.Select(part => part.Text.SetColor(part.Color)));
 
         /// <summary>
         /// Determines whether a hint message should be relayed based on active listening players.
@@ -64,13 +62,9 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// <param name="hintLogMessage">The hint log message.</param>
         /// <param name="session">The active bot session.</param>
         /// <returns>True if the message should be relayed, otherwise false.</returns>
-        public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session)
-        {
-            //Get all slots that are actively listening for hint messages in this channel.
-            HashSet<string> listeningPlayers = [.. session.AuxiliarySessions.Keys, session.ArchipelagoSession.Players.ActivePlayer.Name];
-            //True if the active player is the receiver OR if the receiver is not actively listening for hint messages in this channel.
-            return hintLogMessage.IsReceiverTheActivePlayer || !listeningPlayers.Contains(hintLogMessage.Receiver.Name);
-        }
+        public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session) =>
+            hintLogMessage.IsReceiverTheActivePlayer || 
+            !hintLogMessage.Receiver.Name.In([.. session.AuxiliarySessions.Keys, session.ArchipelagoSession.Players.ActivePlayer.Name]);
 
         /// <summary>
         /// Determines whether a log message should be ignored based on session settings.
@@ -172,20 +166,17 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             return processedTags.ToHashSet();
         }
 
-        public static MessageQueueData.IQueuedMessage FormatLogMessage(this LogMessage message, ActiveBotSession botSession)
+        public static IQueuedMessage FormatLogMessage(this LogMessage message, ActiveBotSession botSession) => message switch
         {
-            return message switch
-            {
-                ItemSendLogMessage => new MessageQueueData.QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
-                JoinLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Green).Build()),
-                LeaveLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Red).Build()),
-                CollectLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).Build()),
-                ReleaseLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).Build()),
-                GoalLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Gold).Build()),
-                ChatLogMessage or ServerChatLogMessage => new MessageQueueData.QueuedMessage(message.ToString()),
-                CommandResultLogMessage => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).Build()),
-                _ => new MessageQueueData.QueuedMessage(new Discord.EmbedBuilder().WithDescription(message.ToString()).Build()),
-            };
-        }
+            ItemSendLogMessage => new QueuedItemLogMessage(message.ToColoredString(), message.ToString(), message.GetUserPings(botSession)),
+            JoinLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Green).BuildQueuedMessage(),
+            LeaveLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Red).BuildQueuedMessage(),
+            CollectLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).BuildQueuedMessage(),
+            ReleaseLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).BuildQueuedMessage(),
+            GoalLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Gold).BuildQueuedMessage(),
+            ChatLogMessage or ServerChatLogMessage => new QueuedMessage(message.ToString()),
+            CommandResultLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).BuildQueuedMessage(),
+            _ => new Discord.EmbedBuilder().WithDescription(message.ToString()).BuildQueuedMessage(),
+        };
     }
 }

@@ -17,11 +17,8 @@
         /// <param name="input">The text to format.</param>
         /// <param name="color">The color to apply, based on Archipelago's color model.</param>
         /// <returns>The formatted string with ANSI color codes if a matching color exists, otherwise the original string.</returns>
-        public static string SetColor(this string input, Archipelago.MultiClient.Net.Models.Color color)
-        {
-            if (!ColorCodes.TryGetValue(color, out Tuple<string, string>? Parts)) { return input; }
-            return $"{Parts.Item1}{input}{Parts.Item2}";
-        }
+        public static string SetColor(this string input, Archipelago.MultiClient.Net.Models.Color color) =>
+            ColorCodes.TryGetValue(color, out Tuple<string, string>? Parts) ? $"{Parts.Item1}{input}{Parts.Item2}" : input;
         /// <summary>
         /// Determines the appropriate Discord embed color based on the number of successes and failures in the given collections.
         /// </summary>

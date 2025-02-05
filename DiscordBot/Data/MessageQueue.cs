@@ -33,6 +33,8 @@ namespace ArchipelagoDiscordClientLegacy.Data
         public static void QueueAPIAction(this DiscordBot discordBot, ISocketMessageChannel channel, IQueuedAPIAction action) =>
             discordBot.DiscordAPIQueue.Queue.Enqueue(new(channel, action));
 
+        public static QueuedMessage BuildQueuedMessage(this EmbedBuilder embedBuilder, string? message = null) => new(embedBuilder.Build(), message);
+
         /// <summary>
         /// Represents a generic queued message.
         /// </summary>

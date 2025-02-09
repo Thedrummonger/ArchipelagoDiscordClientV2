@@ -80,7 +80,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     ReceivingPlayerName = ReceivingPlayer.Slot == TargetPlayer.Slot ?
                         ReceivingPlayerName.SetColor(ColorHelpers.Players.Local) :
                         ReceivingPlayerName.SetColor(ColorHelpers.Players.Other);
-                    string HintLine = $"{FindingPlayerName} has {Item} at {Location} for {ReceivingPlayerName} {EntranceLine}({FoundString})";
+                    string HintLine = $"{ReceivingPlayerName}'s {Item} is at {Location} in {FindingPlayerName}'s world {EntranceLine}({FoundString})";
 
                     Messages.Add(new QueuedItemLogMessage(HintLine));
                 }

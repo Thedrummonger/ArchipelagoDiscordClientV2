@@ -84,7 +84,8 @@ namespace ArchipelagoDiscordClientLegacy.Data
                                 GatewayIntents.DirectMessages |
                                 GatewayIntents.Guilds |
                                 GatewayIntents.MessageContent |
-                                GatewayIntents.GuildIntegrations
+                                GatewayIntents.GuildIntegrations,
+                UseInteractionSnowflakeDate = false
             };
         }
     }

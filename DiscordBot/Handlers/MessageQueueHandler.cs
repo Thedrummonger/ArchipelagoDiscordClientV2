@@ -22,7 +22,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         {
             while (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
             {
-                if (Program.ShowHeartbeat) { Console.WriteLine($"Message Queue Heartbeat: {ChannelSession.DiscordChannel.Id}"); }
+                if (Program.ShowHeartbeat) { Console.WriteLine($"Message Queue Heartbeat: {ChannelSession.DiscordChannel.Id}, Queue: {Queue.Count}"); }
                 if (Queue.Count == 0)
                 {
                     await Task.Delay(Constants.DiscordRateLimits.IdleDelay);
@@ -71,17 +71,20 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             {
                 var nextItem = Queue.Peek();
                 if (nextItem is not QueuedItemLogMessage NextItemLogMessage) break;
-                var simulatedMessage = GetFinalMessage([.. messageBatch, NextItemLogMessage.Message]);
+                var ItemMessageString = CreateItemMessageString(NextItemLogMessage);
+                var simulatedMessage = GetFinalMessage([.. messageBatch, ItemMessageString]);
                 if (simulatedMessage.Length > CharLimit)
                     break;
 
                 Queue.Dequeue();
-                messageBatch.Add(NextItemLogMessage.Message);
+                messageBatch.Add(ItemMessageString);
                 foreach (var userId in NextItemLogMessage.UsersToPing)
                     UserPings.Add(userId);
             }
             return messageBatch;
         }
+        private static string CreateItemMessageString(QueuedItemLogMessage logMessage) =>
+            logMessage.Message + (logMessage.UsersToPing.Count > 0 ? $" {CreatePingString(logMessage.UsersToPing)}" : "");
         /// <summary>
         /// Formats a batch of messages with ANSI code block formatting.
         /// </summary>
@@ -110,7 +113,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         {
             while (IsProcessing)
             {
-                if (Program.ShowHeartbeat) { Console.WriteLine($"Master API Queue Heartbeat"); }
+                if (Program.ShowHeartbeat) { Console.WriteLine($"Master API Queue Heartbeat. Queue: {Queue.Count}"); }
                 if (Queue.Count == 0 || discordBot.Client.ConnectionState != ConnectionState.Connected)
                 {
                     await Task.Delay(Constants.DiscordRateLimits.IdleDelay);

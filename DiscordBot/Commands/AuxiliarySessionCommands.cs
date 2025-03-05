@@ -168,7 +168,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     await command.RespondAsync("The given slot did not have an active auxiliary connection", ephemeral: true);
                     return;
                 }
-                await command.RespondAsync($"[{TargetSession.Players.ActivePlayer.Name}] {MessageArgs}");
+                await command.RespondAsync($"[{TargetSession.Players.ActivePlayer.Name}] {MessageArgs}", ephemeral: true);
                 TargetSession.Say(MessageArgs);
             }
         }

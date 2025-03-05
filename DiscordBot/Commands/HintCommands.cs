@@ -1,4 +1,5 @@
-﻿using Archipelago.MultiClient.Net.Enums;
+﻿using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.Enums;
 using ArchipelagoDiscordClientLegacy.Data;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord;
@@ -6,11 +7,67 @@ using Discord.WebSocket;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.DiscordBotData;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
+using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
 namespace ArchipelagoDiscordClientLegacy.Commands
 {
     public static class HintCommands
     {
+        public class HintCommand : ICommand
+        {
+            public string Name => "hint";
+
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
+                .WithName(Name)
+                    .WithDescription("Sends an item hint command to the AP server")
+                    .AddOption("slot", ApplicationCommandOptionType.String, "Player to hint as", false)
+                    .AddOption("hint", ApplicationCommandOptionType.String, "Hinted item", false).Build();
+
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot) => await SendHint(command, discordBot, false);
+        }
+        public class HintLocationCommand : ICommand
+        {
+            public string Name => "hint_location";
+
+            public SlashCommandProperties Properties => new SlashCommandBuilder()
+                .WithName(Name)
+                    .WithDescription("Sends a location hint command to the AP server")
+                    .AddOption("slot", ApplicationCommandOptionType.String, "Player to hint as, defaults to connected player", false)
+                    .AddOption("hint", ApplicationCommandOptionType.String, "Hinted location", false).Build();
+
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot) => await SendHint(command, discordBot, false);
+        }
+
+        private static async Task SendHint(SocketSlashCommand command, DiscordBot discordBot, bool LocationHint)
+        {
+            if (!command.Validate(discordBot, out ActiveBotSession? session, out CommandData.CommandDataModel commandData, out string Result))
+            {
+                await command.RespondAsync(Result, ephemeral: true);
+                return;
+            }
+            var SlotArgs = commandData.GetArg("slot")?.GetValue<string>();
+            var MessageArgs = commandData.GetArg("hint")?.GetValue<string>();
+
+            ArchipelagoSession TargetSession;
+            if (String.IsNullOrWhiteSpace(SlotArgs) || SlotArgs == session!.ArchipelagoSession.Players.ActivePlayer.Name)
+                TargetSession = session!.ArchipelagoSession;
+            else if (session!.AuxiliarySessions.TryGetValue(SlotArgs, out ArchipelagoSession? AuxiliarySession))
+                TargetSession = AuxiliarySession;
+            else
+            {
+                await command.RespondAsync("The given slot did not have an active auxiliary connection", ephemeral: true);
+                return;
+            }
+
+            string Message = LocationHint ? "!hint_location" : "!hint";
+            if (MessageArgs is string hintedItem)
+                Message += $" {hintedItem}";
+
+            await command.RespondAsync($"[{TargetSession.Players.ActivePlayer.Name}] {Message}", ephemeral: true);
+
+            TargetSession.Say(Message);
+        }
+
         public class ShowHintsCommand : ICommand
         {
             public string Name => "show_hints";
@@ -37,7 +94,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     TargetPlayer = session.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == PlayerNameString);
                 }
 
-                if (TargetPlayer == null)
+                if (TargetPlayer is null)
                 {
                     await command.RespondAsync($"{PlayerNameArg} was not a valid player", ephemeral: true);
                     return;

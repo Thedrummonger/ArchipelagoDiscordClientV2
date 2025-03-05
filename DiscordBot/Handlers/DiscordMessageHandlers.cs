@@ -19,15 +19,13 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             if (message.Author.IsBot) return;
 
             // Check if the message was sent in a guild text channel
-            if (message.Channel is not ISocketMessageChannel textChannel) { return; }
+            if (message.Channel is not ISocketMessageChannel textChannel) return;
 
             var channelId = textChannel.Id;
 
             // Check if the message was sent in an active Archipelago session channel
             if (discordBot.ActiveSessions.TryGetValue(channelId, out Sessions.ActiveBotSession? Session))
-            {
                 await RelayMessageToArchipelago(message, Session);
-            }
         }
         /// <summary>
         /// Relays a Discord message to the Archipelago server as an in-game chat message.
@@ -43,7 +41,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         {
             if (string.IsNullOrWhiteSpace(message.Content)) { return; }
 
-            string Message = $"[Discord: {message.Author.Username}] {message.Content}]";
+            string Message = $"[Discord: {message.Author.Username}] {message.Content}";
             try
             {
                 await activeBotSession.ArchipelagoSession.Socket.SendPacketAsync(new SayPacket() { Text = Message });

@@ -1,4 +1,5 @@
-﻿using ArchipelagoDiscordClientLegacy.Data;
+﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
+using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
@@ -34,18 +35,23 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 List<string> Set2;
                 switch (Queue.Peek())
                 {
-                    case QueuedTypedMessage:
-                        Set1 = GetSimpleMessagesForEmbed(Constants.DiscordRateLimits.DiscordEmbedMessageLimit);
-                        Set2 = GetSimpleMessagesForEmbed(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length);
-                        items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set1)).Build());
-                        if (Set2.Count > 0)
-                            items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set2)).Build());
-                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items));
+                    case CombinableMessage combinable:
+                        if (!combinable.Embed)
+                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(CombineMessages(Constants.DiscordRateLimits.DiscordMessageLimit)));
+                        else
+                        {
+                            Set1 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit);
+                            Set2 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length);
+                            items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set1)).Build());
+                            if (Set2.Count > 0)
+                                items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set2)).Build());
+                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items));
+                        }
                         break;
 
                     case QueuedItemLogMessage:
-                        Set1 = GetItemLogMessagesForEmbed(Constants.DiscordRateLimits.DiscordEmbedMessageLimit, out var PingSet1);
-                        Set2 = GetItemLogMessagesForEmbed(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length, out var PingSet2);
+                        Set1 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit, out var PingSet1);
+                        Set2 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length, out var PingSet2);
                         items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set1)).Build());
                         if (Set2.Count > 0)
                             items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set2)).Build());
@@ -73,7 +79,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         /// <param name="CharLimit">The maximum number of characters allowed in the message.</param>
         /// <param name="UserPings">A set of user IDs to ping in the message.</param>
         /// <returns>A list of messages that fit within the character limit.</returns>
-        List<string> GetItemLogMessagesForEmbed(int CharLimit, out HashSet<ulong> UserPings)
+        List<string> CombineItemLogMessages(int CharLimit, out HashSet<ulong> UserPings)
         {
             UserPings = [];
             if (Queue.Count == 0) { return []; }
@@ -95,7 +101,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             return messageBatch;
         }
 
-        List<string> GetSimpleMessagesForEmbed(int CharLimit)
+        List<string> CombineMessages(int CharLimit)
         {
             if (Queue.Count == 0) { return []; }
             var messageBatch = new List<string>();
@@ -103,7 +109,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             while (Queue.Count > 0)
             {
                 var nextItem = Queue.Peek();
-                if (nextItem is not QueuedTypedMessage NextItemLogMessage) break;
+                if (nextItem is not CombinableMessage NextItemLogMessage) break;
                 TargetType ??= NextItemLogMessage.Type;
                 if (NextItemLogMessage.Type != TargetType) break;
                 var simulatedMessage = string.Join('\n', [.. messageBatch, NextItemLogMessage.Message]);
@@ -161,6 +167,10 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                     {
                         case QueuedMessage messageAction:
                             _ = channel.SendMessageAsync(messageAction.Message, embeds: messageAction.Embeds);
+                            break;
+                        case QueuedChannelRename channelRename:
+                            if (channel is ITextChannel socketTextChannel)
+                                _ = socketTextChannel.ModifyAsync(properties => properties.Name = channelRename.Name);
                             break;
                     }
 

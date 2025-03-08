@@ -21,7 +21,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public QueuedMessage(string message) : this([], message) { }
             public QueuedMessage(Embed? embed, string? message = null) : this(embed is null ? [] : [embed], message) { }
 
-            public string? Message = message;
+            public string? Message { get; set; } = message;
             public Embed[] Embeds = [.. embeds];
         }
         /// <summary>
@@ -38,15 +38,27 @@ namespace ArchipelagoDiscordClientLegacy.Data
         /// <summary>
         /// Represents a generic queued message.
         /// </summary>
-        public interface IQueuedMessage { }
+        public interface IQueuedMessage 
+        {
+            string? Message { get; set; }
+        }
         /// <summary>
         /// Represents a queued item log message, containing message content and user pings.
         /// </summary>
         public class QueuedItemLogMessage(string message, string? raw = null, IEnumerable<ulong>? ToPing = null) : IQueuedMessage
         {
-            public string Message = message;
+            public string? Message { get; set; } = message;
             public string RawMessage = raw ?? message;
             public HashSet<ulong> UsersToPing = ToPing is null ? [] : [.. ToPing];
+        }
+        /// <summary>
+        /// Represents a queued Log Message that should be combine with neighboring messages of the same type when sent to the queue
+        /// </summary>
+        public class QueuedTypedMessage(Type type, string message) : IQueuedMessage
+        {
+            public QueuedTypedMessage(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage logMessage) : this(logMessage.GetType(), logMessage.ToString()) { }
+            public string? Message { get; set; } = message;
+            public Type Type = type;
         }
         /// <summary>
         /// Enqueues a message to be sent to the Discord channel associated with the session.

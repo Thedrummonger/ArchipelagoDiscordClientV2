@@ -174,8 +174,8 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             CollectLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).BuildQueuedMessage(),
             ReleaseLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Blue).BuildQueuedMessage(),
             GoalLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).WithColor(Discord.Color.Gold).BuildQueuedMessage(),
-            ChatLogMessage or ServerChatLogMessage => new QueuedMessage(message.ToString()),
-            CommandResultLogMessage => new Discord.EmbedBuilder().WithDescription(message.ToString()).BuildQueuedMessage(),
+            ChatLogMessage or ServerChatLogMessage => new QueuedTypedMessage(message),
+            CommandResultLogMessage => new QueuedTypedMessage(message),
             _ => new Discord.EmbedBuilder().WithDescription(message.ToString()).BuildQueuedMessage(),
         };
     }

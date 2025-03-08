@@ -94,8 +94,6 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             }
             return messageBatch;
         }
-        private static string CreateItemMessageString(QueuedItemLogMessage logMessage) =>
-            logMessage.Message + (logMessage.UsersToPing.Count > 0 ? $" {CreatePingString(logMessage.UsersToPing)}" : "");
 
         List<string> GetSimpleMessagesForEmbed(int CharLimit)
         {

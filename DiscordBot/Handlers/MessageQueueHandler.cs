@@ -35,18 +35,17 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 List<string> Set2;
                 switch (Queue.Peek())
                 {
-                    case CombinableMessage combinable:
-                        if (!combinable.Embed)
-                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(CombineMessages(Constants.DiscordRateLimits.DiscordMessageLimit)));
-                        else
-                        {
-                            Set1 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit);
-                            Set2 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length);
-                            items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set1)).Build());
-                            if (Set2.Count > 0)
-                                items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set2)).Build());
-                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items));
-                        }
+                    case CombinableMessage combinable when combinable.Embed:
+                        Set1 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit);
+                        Set2 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length);
+                        items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set1)).Build());
+                        if (Set2.Count > 0)
+                            items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set2)).Build());
+                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items));
+                        break;
+
+                    case CombinableMessage:
+                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(CombineMessages(Constants.DiscordRateLimits.DiscordMessageLimit)));
                         break;
 
                     case QueuedItemLogMessage:
@@ -55,8 +54,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                         items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set1)).Build());
                         if (Set2.Count > 0)
                             items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set2)).Build());
-                        QueuedMessage queuedAPIMessage = new(items, CreatePingString([.. PingSet1, .. PingSet2]));
-                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedAPIMessage);
+                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items, CreatePingString([.. PingSet1, .. PingSet2])));
                         break;
 
                     case QueuedMessage queuedMessage:

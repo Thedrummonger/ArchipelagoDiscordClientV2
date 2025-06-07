@@ -4,6 +4,7 @@ using Discord;
 using Discord.Net;
 using Discord.WebSocket;
 using System.Net.WebSockets;
+using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 
 namespace ArchipelagoDiscordClientLegacy.Handlers
@@ -36,6 +37,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 switch (Queue.Peek())
                 {
                     case CombinableMessage combinable when combinable.Embed:
+                        if (Program.ShowHeartbeat) { Console.WriteLine($"Combining Embed Message"); }
                         Set1 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit);
                         Set2 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length);
                         items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set1)).Build());
@@ -45,10 +47,12 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                         break;
 
                     case CombinableMessage:
+                        if (Program.ShowHeartbeat) { Console.WriteLine($"Combining text Message"); }
                         discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(CombineMessages(Constants.DiscordRateLimits.DiscordMessageLimit)));
                         break;
 
                     case QueuedItemLogMessage:
+                        if (Program.ShowHeartbeat) { Console.WriteLine($"Combining Item Log"); }
                         Set1 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit, out var PingSet1);
                         Set2 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length, out var PingSet2);
                         items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set1)).Build());
@@ -58,8 +62,14 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                         break;
 
                     case QueuedMessage queuedMessage:
+                        if (Program.ShowHeartbeat) { Console.WriteLine($"Sending Message"); }
                         Queue.Dequeue();
                         discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedMessage);
+                        break;
+
+                    default:
+                        var ErrorMessage = Queue.Dequeue();
+                        Console.WriteLine($"Unable to process queued message of type: {ErrorMessage.GetType()}\n{ErrorMessage.ToFormattedJson()}");
                         break;
                 }
 
@@ -121,7 +131,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         }
 
         private static string CreateItemMessageString(QueuedItemLogMessage logMessage) =>
-            logMessage.Message + (logMessage.UsersToPing.Count > 0 ? $" {CreatePingString(logMessage.UsersToPing)}" : "");
+            logMessage.Message!;
         /// <summary>
         /// Formats a batch of messages with ANSI code block formatting.
         /// </summary>

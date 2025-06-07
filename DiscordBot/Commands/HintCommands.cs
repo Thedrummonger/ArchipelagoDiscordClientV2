@@ -117,9 +117,15 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     var FindingPlayerName = FindingPlayer.Name;
                     var ReceivingPlayerName = ReceivingPlayer.Name;
 
-                    var FoundString = hint.Found ?
-                        ColorHelpers.SetColor("Found", ColorHelpers.Hints.found) :
-                        ColorHelpers.SetColor("Not Found", ColorHelpers.Hints.Unfound);
+                    var FoundColor = hint.Status switch
+                    {
+                        HintStatus.Found => ColorHelpers.Hints.found,
+                        HintStatus.Priority => ColorHelpers.Items.Progression,
+                        HintStatus.Avoid => ColorHelpers.Items.Traps,
+                        HintStatus.NoPriority => ColorHelpers.Items.Normal,
+                        _ => Archipelago.MultiClient.Net.Models.Color.White,
+                    };
+                    var FoundString = ColorHelpers.SetColor(hint.Status.ToString(), FoundColor);
 
                     if (hint.ItemFlags.HasFlag(ItemFlags.Advancement)) { Item = Item.SetColor(ColorHelpers.Items.Progression); }
                     else if (hint.ItemFlags.HasFlag(ItemFlags.NeverExclude)) { Item = Item.SetColor(ColorHelpers.Items.Important); }

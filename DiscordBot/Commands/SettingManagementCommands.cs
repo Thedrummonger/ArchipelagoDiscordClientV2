@@ -70,13 +70,10 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 var setting = (Data.GetArg("setting")?.GetValue<long>());
                 var value = Data.GetArg("value")?.GetValue<bool?>();
 
-                SettingsManager settingsManager = new(ActiveSession!.Settings);
-
-                var selectedSetting = settingsManager.GetSetting(setting);
-
+                var selectedSetting = ActiveSession!.Settings.GetSetting(setting);
                 if (selectedSetting is null)
                 {
-                    await PrintHelp(command);
+                    await ShowToggleDescription(command);
                     return;
                 }
                 selectedSetting.Value = value ?? !selectedSetting.Value;
@@ -129,7 +126,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             }
         }
 
-        private static async Task PrintHelp(SocketSlashCommand command)
+        private static async Task ShowToggleDescription(SocketSlashCommand command)
         {
             List<string> Print = [];
             var properties = SessionSetting.GetToggleSettings();
@@ -139,8 +136,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 string description = descriptionAttribute?.Description ?? "No description available";
                 Print.Add($"{property.Name}: {description}");
             }
-            Print.Add("edit_ignored_tags: connect/disconnect messages will be ignored if the clients tags contain an ignored tag." +
-                "Default Ignored tags are\n\"tracker\",\n\"textonly\"");
             await command.RespondAsync(string.Join("\n", Print));
         }
     }

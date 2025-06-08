@@ -3,6 +3,8 @@ using ArchipelagoDiscordClientLegacy.Data;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
+using System;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
@@ -34,43 +36,54 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 List<Embed> items = [];
                 List<string> Set1;
                 List<string> Set2;
-                switch (Queue.Peek())
+                try
                 {
-                    case CombinableMessage combinable when combinable.Embed:
-                        if (Program.ShowHeartbeat) { Console.WriteLine($"Combining Embed Message"); }
-                        Set1 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit);
-                        Set2 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length);
-                        items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set1)).Build());
-                        if (Set2.Count > 0)
-                            items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set2)).Build());
-                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items));
-                        break;
 
-                    case CombinableMessage:
-                        if (Program.ShowHeartbeat) { Console.WriteLine($"Combining text Message"); }
-                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(CombineMessages(Constants.DiscordRateLimits.DiscordMessageLimit)));
-                        break;
+                    switch (Queue.Peek())
+                    {
+                        case CombinableMessage combinable when combinable.Embed:
+                            Console.WriteLine($"Combining Embed Message");
+                            Set1 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit);
+                            Set2 = CombineMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length);
+                            items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set1)).Build());
+                            if (Set2.Count > 0)
+                                items.Add(new EmbedBuilder().WithDescription(string.Join('\n', Set2)).Build());
+                            Console.WriteLine($"Queueing combined Embed Message");
+                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items));
+                            break;
 
-                    case QueuedItemLogMessage:
-                        if (Program.ShowHeartbeat) { Console.WriteLine($"Combining Item Log"); }
-                        Set1 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit, out var PingSet1);
-                        Set2 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length, out var PingSet2);
-                        items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set1)).Build());
-                        if (Set2.Count > 0)
-                            items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set2)).Build());
-                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items, CreatePingString([.. PingSet1, .. PingSet2])));
-                        break;
+                        case CombinableMessage:
+                            Console.WriteLine($"Queueing text Message");
+                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(CombineMessages(Constants.DiscordRateLimits.DiscordMessageLimit)));
+                            break;
 
-                    case QueuedMessage queuedMessage:
-                        if (Program.ShowHeartbeat) { Console.WriteLine($"Sending Message"); }
-                        Queue.Dequeue();
-                        discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedMessage);
-                        break;
+                        case QueuedItemLogMessage:
+                            Console.WriteLine($"Combining Item Log Message");
+                            Set1 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedMessageLimit, out var PingSet1);
+                            Set2 = CombineItemLogMessages(Constants.DiscordRateLimits.DiscordEmbedTotalLimit - GetFinalMessage(Set1).Length, out var PingSet2);
+                            items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set1)).Build());
+                            if (Set2.Count > 0)
+                                items.Add(new EmbedBuilder().WithDescription(GetFinalMessage(Set2)).Build());
+                            Console.WriteLine($"Queueing combined Item Log Message");
+                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, new QueuedMessage(items, CreatePingString([.. PingSet1, .. PingSet2])));
+                            break;
 
-                    default:
-                        var ErrorMessage = Queue.Dequeue();
-                        Console.WriteLine($"Unable to process queued message of type: {ErrorMessage.GetType()}\n{ErrorMessage.ToFormattedJson()}");
-                        break;
+                        case QueuedMessage queuedMessage:
+                            Console.WriteLine($"Sending Message");
+                            Queue.Dequeue();
+                            discordBot.QueueAPIAction(ChannelSession.DiscordChannel, queuedMessage);
+                            break;
+
+                        default:
+                            var ErrorMessage = Queue.Dequeue();
+                            Console.WriteLine($"Unable to process queued message of type: {ErrorMessage.GetType()}\n{ErrorMessage.ToFormattedJson()}");
+                            break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    var ErrorMessage = Queue.Dequeue();
+                    Console.WriteLine($"Error processing message {ErrorMessage.GetType()}\n{e}\n{ErrorMessage.ToFormattedJson()}");
                 }
 
                 await Task.Delay(Constants.DiscordRateLimits.SendMessage);

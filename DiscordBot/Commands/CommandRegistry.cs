@@ -20,14 +20,6 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             CreateCommands();
         }
         /// <summary>
-        /// Adds a command to the registry.
-        /// </summary>
-        /// <param name="command">The command to register.</param>
-        public void AddCommand(ICommand command)
-        {
-            Commands[command.Name] = command;
-        }
-        /// <summary>
         /// Retrieves a registered command by its name.
         /// </summary>
         /// <param name="Name">The name of the command.</param>
@@ -59,7 +51,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 if (Activator.CreateInstance(commandType) is ICommand command)
                 {
                     Console.WriteLine($"Registering Command: {command.Name}");
-                    AddCommand(command);
+                    Commands.Add(command.Name, command);
                 }
             }
         }

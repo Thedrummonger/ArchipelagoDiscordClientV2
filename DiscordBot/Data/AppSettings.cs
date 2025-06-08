@@ -39,64 +39,38 @@ namespace ArchipelagoDiscordClientLegacy.Data
         public static PropertyInfo[] GetToggleSettings()
         {
             var properties = typeof(SessionSetting).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            return properties.Where(x => x.PropertyType == typeof(bool)).ToArray();
-        }
-    }
-
-    /// <summary>
-    /// Represents a toggleable session setting with a display name and description.
-    /// </summary>
-    public class ToggleSetting(string Name, string Description, SessionSetting settings, PropertyInfo property)
-    {
-        public string DisplayName = Name;
-        public string SettingDescription = Description;
-        public bool Value
-        {
-            get { return (bool)property.GetValue(settings)!; }
-            set { property.SetValue(settings, value); }
-        }
-    }
-
-    /// <summary>
-    /// Manages session settings and provides methods for retrieving and modifying toggleable settings.
-    /// </summary>
-    public class SettingsManager
-    {
-        /// <summary>
-        /// A list of available toggle settings.
-        /// </summary>
-        public readonly List<ToggleSetting> toggleSettings = [];
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SettingsManager"/> class and populates the toggle settings list.
-        /// </summary>
-        /// <param name="settings">The session settings to manage.</param>
-        public SettingsManager(SessionSetting settings)
-        {
-            foreach (var property in SessionSetting.GetToggleSettings())
-            {
-                var descriptionAttribute = property.GetCustomAttribute<DescriptionAttribute>();
-                string description = descriptionAttribute?.Description ?? "No description available";
-                toggleSettings.Add(new ToggleSetting(property.Name, description, settings, property));
-            }
+            return [.. properties.Where(x => x.PropertyType == typeof(bool))];
         }
         /// <summary>
-        /// Retrieves a toggle setting by its index.
+        /// Gets a container with the specific instance of a given toggle from this instance of SessionSetting
         /// </summary>
-        /// <typeparam name="T">The numeric type (e.g., int, long, short, double, int?, long?).</typeparam>
-        /// <param name="index">The numeric index of the setting.</param>
-        /// <returns>The corresponding <see cref="ToggleSetting"/> or null if the index is invalid.</returns>
         public ToggleSetting? GetSetting<T>(T? index) where T : struct, IConvertible
         {
             if (index is null) return null;
+            var toggleSettings = SessionSetting.GetToggleSettings();
             try
             {
                 int parsedIndex = Convert.ToInt32(index);
-                return (parsedIndex >= 0 && parsedIndex < toggleSettings.Count) ? toggleSettings[parsedIndex] : null;
+                return (parsedIndex >= 0 && parsedIndex < toggleSettings.Length) ? new ToggleSetting(this, toggleSettings[parsedIndex]) : null;
             }
             catch
             {
                 return null;
             }
+        }
+    }
+
+    /// <summary>
+    /// A container containing a specific instance of a toggle setting from the given instance of SessionSetting.
+    /// </summary>
+    public class ToggleSetting(SessionSetting settings, PropertyInfo property)
+    {
+        public string DisplayName = property.Name;
+        public string SettingDescription = property.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "No description available";
+        public bool Value
+        {
+            get { return (bool)property.GetValue(settings)!; }
+            set { property.SetValue(settings, value); }
         }
     }
 }

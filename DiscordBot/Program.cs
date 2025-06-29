@@ -48,7 +48,6 @@ namespace ArchipelagoDiscordClientLegacy
 
 
             //Allow for console commands, this loop will not exit unless the exit command is entered
-            ConsoleCommandHandlers.RegisterCommands();
             ConsoleCommandHandlers.RunUserInputLoop(BotClient);
 
             //If the above loop does exit, most likely because the exit command has been executed, gracefully close all connections before closing the application

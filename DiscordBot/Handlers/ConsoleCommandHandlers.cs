@@ -32,6 +32,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         /// <param name="botClient">The Discord bot instance that commands interact with.</param>
         public static void RunUserInputLoop(DiscordBot botClient)
         {
+            RegisterCommands();
             while (true)
             {
                 var input = Console.ReadLine();

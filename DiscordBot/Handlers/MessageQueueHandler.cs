@@ -27,7 +27,8 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
             while (discordBot.ActiveSessions.ContainsKey(ChannelSession.DiscordChannel.Id))
             {
                 if (Program.ShowHeartbeat) { Console.WriteLine($"Message Queue Heartbeat: {ChannelSession.DiscordChannel.Id}, Queue: {Queue.Count}"); }
-                if (Queue.Count == 0)
+                var HasQueue = Queue.TryPeek(out var PeekedItem);
+                if (!HasQueue)
                 {
                     await Task.Delay(Constants.DiscordRateLimits.IdleDelay);
                     continue;
@@ -38,8 +39,9 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                 List<string> Set2;
                 try
                 {
+                    Console.WriteLine($"Handling Queued Message of type {PeekedItem?.GetType()}");
 
-                    switch (Queue.Peek())
+                    switch (PeekedItem)
                     {
                         case CombinableMessage combinable when combinable.Embed:
                             Console.WriteLine($"Combining Embed Message");
@@ -85,6 +87,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
                     var ErrorMessage = Queue.Dequeue();
                     Console.WriteLine($"Error processing message {ErrorMessage.GetType()}\n{e}\n{ErrorMessage.ToFormattedJson()}");
                 }
+                Console.WriteLine($"handled message, Waiting {Constants.DiscordRateLimits.SendMessage}");
 
                 await Task.Delay(Constants.DiscordRateLimits.SendMessage);
             }
@@ -173,7 +176,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         {
             while (IsProcessing)
             {
-                if (Program.ShowHeartbeat) { Console.WriteLine($"Master API Queue Heartbeat. Queue: {Queue.Count}"); }
+                //if (Program.ShowHeartbeat) { Console.WriteLine($"Master API Queue Heartbeat. Queue: {Queue.Count}"); }
                 if (Queue.Count == 0 || discordBot.Client.ConnectionState != ConnectionState.Connected)
                 {
                     await Task.Delay(Constants.DiscordRateLimits.IdleDelay);

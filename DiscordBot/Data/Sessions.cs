@@ -40,8 +40,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
             /// A dictionary that allows external code to store arbitrary data associated with this object.
             /// </summary>
             /// <remarks>
-            /// This dictionary acts as an extensibility point, enabling external consumers of this API 
-            /// to attach custom data without modifying the object's structure.
+            /// This dictionary acts as an extensibility point, enabling external processes to attach custom data.
             /// </remarks>
             public Dictionary<string, object> Metadata { get; private set; } = [];
         }

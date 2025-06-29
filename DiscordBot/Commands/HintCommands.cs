@@ -35,7 +35,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .AddOption("slot", ApplicationCommandOptionType.String, "Player to hint as, defaults to connected player", false)
                     .AddOption("hint", ApplicationCommandOptionType.String, "Hinted location", false).Build();
 
-            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot) => await SendHint(command, discordBot, false);
+            public async Task ExecuteCommand(SocketSlashCommand command, DiscordBot discordBot) => await SendHint(command, discordBot, true);
         }
 
         private static async Task SendHint(SocketSlashCommand command, DiscordBot discordBot, bool LocationHint)

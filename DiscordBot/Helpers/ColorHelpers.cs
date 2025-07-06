@@ -83,6 +83,7 @@
         /// <summary>
         /// Dictionary mapping Archipelago colors to their respective ANSI escape sequences for text formatting.
         /// </summary>
+        /*
         public static readonly Dictionary<Archipelago.MultiClient.Net.Models.Color, Tuple<string, string>> ColorCodes = new()
             {
                 { Archipelago.MultiClient.Net.Models.Color.Red, new (@"[2;31m", @"[0m") },
@@ -97,5 +98,29 @@
                 { Archipelago.MultiClient.Net.Models.Color.Salmon, new (@"[2;33m", @"[0m") },
                 { Archipelago.MultiClient.Net.Models.Color.Plum, new (@"[2;35m", @"[0m") }
             };
+        */
+        public static readonly Dictionary<Archipelago.MultiClient.Net.Models.Color, Tuple<string, string>> ColorCodes = new()
+        {
+			// — Hints
+			{ Archipelago.MultiClient.Net.Models.Color.Red,     new("\u001b[2;31m", "\u001b[0m") },  // unfound (dim red)
+			{ Archipelago.MultiClient.Net.Models.Color.Green,   new("\u001b[2;32m", "\u001b[0m") },  // found / Locations.Location (dim green)
+
+			// — Players
+			{ Archipelago.MultiClient.Net.Models.Color.Yellow,  new("\u001b[2;33m", "\u001b[0m") },  // Other (dim yellow)
+			{ Archipelago.MultiClient.Net.Models.Color.Magenta, new("\u001b[2;35m", "\u001b[0m") },  // Local  (dim magenta)
+
+			// — Locations
+			{ Archipelago.MultiClient.Net.Models.Color.Blue,    new("\u001b[2;34m", "\u001b[0m") },  // Entrance (dim blue)
+
+			// — Items
+			{ Archipelago.MultiClient.Net.Models.Color.Cyan,      new("\u001b[1;36m", "\u001b[0m") },  // Normal      (bright cyan)
+			{ Archipelago.MultiClient.Net.Models.Color.SlateBlue, new("\u001b[1;34m", "\u001b[0m") },  // Important   (bright blue)
+			{ Archipelago.MultiClient.Net.Models.Color.Salmon,    new("\u001b[1;33m", "\u001b[0m") },  // Traps       (bright yellow)
+			{ Archipelago.MultiClient.Net.Models.Color.Plum,      new("\u001b[1;35m", "\u001b[0m") },  // Progression (bright magenta)
+
+			// — Other
+			{ Archipelago.MultiClient.Net.Models.Color.Black,     new("\u001b[2;30m", "\u001b[0m") },  // unused / fallback
+		};
+
     }
 }

@@ -46,7 +46,7 @@ namespace ArchipelagoDiscordClientLegacy.Handlers
         /// </summary>
         /// <param name="input">The user's console input.</param>
         /// <returns>True if the input is "exit", otherwise false.</returns>
-        private static bool ShouldExit(string input)
+        public static bool ShouldExit(string input)
         {
             if (input is null || input != "exit") return false;
             //Maybe do a confirmation?

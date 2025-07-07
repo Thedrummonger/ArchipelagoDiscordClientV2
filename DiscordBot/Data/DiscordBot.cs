@@ -23,6 +23,13 @@ namespace ArchipelagoDiscordClientLegacy.Data
             public DiscordMessageHandlers DiscordMessageHandler;
             public BotAPIRequestQueue DiscordAPIQueue;
             /// <summary>
+            /// A dictionary that allows external code to store arbitrary data associated with this object.
+            /// </summary>
+            /// <remarks>
+            /// This dictionary acts as an extensibility point, enabling external processes to attach custom data.
+            /// </remarks>
+            public Dictionary<string, object> Metadata { get; private set; } = [];
+            /// <summary>
             /// Initializes a new instance of the <see cref="DiscordBot"/> class.
             /// </summary>
             /// <param name="Settings">The application settings used for bot configuration.</param>

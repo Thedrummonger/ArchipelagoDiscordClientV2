@@ -9,11 +9,11 @@ namespace DevClient
         {
             BotSocketConfig.SetLogLevel(LogSeverity.Debug);
 
-            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnSessionCreated += (c, b, s) =>
+            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnSessionCreated += (s) =>
             {
-                s.Metadata[ItemManagementSession.ManagerMetadataKey] = new ItemManagementSession(b, c);
+                s.Metadata[ItemManagementSession.ManagerMetadataKey] = new ItemManagementSession(s.ParentBot, s.DiscordChannel.Id);
             };
-            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnChannelClosed += (c, b, s) =>
+            ArchipelagoDiscordClientLegacy.Helpers.ArchipelagoConnectionHelpers.OnChannelClosed += (s) =>
             {
                 if (s.Metadata.TryGetValue(ItemManagementSession.ManagerMetadataKey, out var v) && v is ItemManagementSession IMSession)
                     IMSession.CloseAllConnections();

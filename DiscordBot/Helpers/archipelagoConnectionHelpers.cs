@@ -15,15 +15,23 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// <summary>
         /// Event triggered when CleanAndCloseChannel is about to start.
         /// </summary>
-        public static event Action<ulong, DiscordBot, Sessions.ActiveBotSession>? OnChannelClosing;
+        public static event Action<Sessions.ActiveBotSession>? OnChannelClosing;
         /// <summary>
         /// Event triggered when CleanAndCloseChannel has completed.
         /// </summary>
-        public static event Action<ulong, DiscordBot, Sessions.ActiveBotSession>? OnChannelClosed;
+        public static event Action<Sessions.ActiveBotSession>? OnChannelClosed;
         /// <summary>
         /// Event triggered when a new session is successfully created.
         /// </summary>
-        public static event Action<ulong, DiscordBot, Sessions.ActiveBotSession>? OnSessionCreated;
+        public static event Action<Sessions.ActiveBotSession>? OnSessionCreated;
+        /// <summary>
+        /// Event triggered when new Auxiliary sessions are successfully created.
+        /// </summary>
+        public static event Action<Sessions.ActiveBotSession, IEnumerable<string>>? OnAuxSessionCreated;
+        /// <summary>
+        /// Event triggered when Auxiliary sessions are closed.
+        /// </summary>
+        public static event Action<Sessions.ActiveBotSession, IEnumerable<string>>? OnAuxSessionClosed;
 
         /// <summary>
         /// Cleans up and closes an active Archipelago session associated with a specific Discord channel.
@@ -35,7 +43,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             if (!bot.ActiveSessions.TryGetValue(channelId, out var session)) { return; }
 
             Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.ArchipelagoSession.Socket.Uri}");
-            OnChannelClosing?.Invoke(channelId, bot, session);
+            OnChannelClosing?.Invoke(session);
             bot.ActiveSessions.Remove(channelId);
             if (session.ArchipelagoSession.Socket.Connected) { await session.ArchipelagoSession.Socket.DisconnectAsync(); }
 
@@ -45,7 +53,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
             session.AuxiliarySessions.Clear();
 
-            OnChannelClosed?.Invoke(channelId, bot, session);
+            OnChannelClosed?.Invoke(session);
         }
         /// <summary>
         /// Sets up message handlers for an auxiliary Archipelago session.
@@ -192,7 +200,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 NewSession.CreateArchipelagoHandlers();
                 _ = NewSession.MessageQueue.ProcessChannelMessages();
 
-                OnSessionCreated?.Invoke(channel.Id, discordBot, NewSession);
+                OnSessionCreated?.Invoke(NewSession);
 
                 Message = $"Successfully connected channel {channel.Name} to Archipelago server at " +
                     $"{NewSession.ArchipelagoSession.Socket.Uri.Host}:" +
@@ -238,6 +246,31 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                     FailedLogins.Add(slot.Name);
                 }
             }
+
+            OnAuxSessionCreated?.Invoke(session, CreatedSessions);
+        }
+
+        public static void DisconnectAuxiliarySessions(this Sessions.ActiveBotSession session, HashSet<string> SessionToRemove, out HashSet<string> RemovedSessions, out HashSet<string> NotConnectedSlots)
+        {
+            //Results
+            RemovedSessions = [];
+            NotConnectedSlots = [];
+            foreach (var Session in SessionToRemove)
+            {
+                var Valid = session!.AuxiliarySessions.TryGetValue(Session, out ArchipelagoSession? APSession);
+                if (Valid)
+                {
+                    session!.AuxiliarySessions.Remove(Session);
+                    APSession!.Socket.DisconnectAsync();
+                    RemovedSessions.Add(Session);
+                }
+                else
+                {
+                    NotConnectedSlots.Add(Session);
+                }
+            }
+
+            OnAuxSessionClosed?.Invoke(session, RemovedSessions);
         }
     }
 }

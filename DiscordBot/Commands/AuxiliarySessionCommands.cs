@@ -104,22 +104,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                 await command.RespondAsync(embed: SessionToRemove.CreateEmbedResultsList("Attempting to disconnect auxiliary connections for"));
 
                 //Results
-                HashSet<string> RemovedSessions = [];
-                HashSet<string> NotConnectedSlots = [];
-                foreach (var Session in SessionToRemove)
-                {
-                    var Valid = session!.AuxiliarySessions.TryGetValue(Session, out ArchipelagoSession? APSession);
-                    if (Valid)
-                    {
-                        session!.AuxiliarySessions.Remove(Session);
-                        await APSession!.Socket.DisconnectAsync();
-                        RemovedSessions.Add(Session);
-                    }
-                    else
-                    {
-                        NotConnectedSlots.Add(Session);
-                    }
-                }
+                session.DisconnectAuxiliarySessions(SessionToRemove, out var RemovedSessions, out var NotConnectedSlots);
 
                 var Result = CommandHelpers.CreateCommandResultEmbed("Remove Auxiliary Sessions Results", null,
                     ColorHelpers.GetResultEmbedStatusColor(RemovedSessions, NotConnectedSlots),

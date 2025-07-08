@@ -48,44 +48,22 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             {
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
-                //Results
-                HashSet<string> AlreadyConnectedSlots = [];
-                HashSet<string> InvalidSlotNames = [];
+                var TargetSlots = string.IsNullOrWhiteSpace(SlotArgs) ? session.GetAuxiliarySlotNames(false) : SlotArgs.TrimSplit(",");
 
-                HashSet<PlayerInfo> AllOtherPlayer = session!.ArchipelagoSession.Players.AllPlayers
-                    .Where(x => x.Slot != session.ArchipelagoSession.Players.ActivePlayer.Slot && x.Name != "Server").ToHashSet();
-                HashSet<PlayerInfo> ValidSlots = [];
+                HashSet<string> ConnectedSlots = [..TargetSlots.Where(x => session.GetAuxiliarySlotNames(true).Contains(x))];
+                HashSet<string> InvalidSlotNames = [.. TargetSlots.Where(x => !session.GetAuxiliarySlotNames().Contains(x))];
+                HashSet<string> DisconnectedSlots = [.. TargetSlots.Where(x => session.GetAuxiliarySlotNames(false).Contains(x))];
 
-                if (String.IsNullOrWhiteSpace(SlotArgs))
-                {
-                    ValidSlots = AllOtherPlayer.Where(x => !session.AuxiliarySessions.ContainsKey(x.Name)).ToHashSet();
-                }
-                else
-                {
-                    var SlotArgsList = SlotArgs.TrimSplit(",");
-                    foreach (var arg in SlotArgsList)
-                    {
-                        var playerInfo = AllOtherPlayer.FirstOrDefault(x => x.Name == arg);
-                        if (playerInfo is null) InvalidSlotNames.Add(arg);
-                        else if (session.AuxiliarySessions.ContainsKey(arg)) AlreadyConnectedSlots.Add(arg);
-                        else ValidSlots.Add(playerInfo);
-                    }
-                }
-                if (ValidSlots.Count == 0)
-                {
-                    await command.RespondAsync($"No valid slots given");
-                    return;
-                }
-                await command.RespondAsync(embed: ValidSlots.Select(x => x.Name).CreateEmbedResultsList("Attempting to add auxiliary connections for"));
+                await command.RespondAsync(embed: DisconnectedSlots.Select(x => x).CreateEmbedResultsList("Attempting to add auxiliary connections for"));
 
-                session.ConnectAuxiliarySessions(ValidSlots, out HashSet<string> FailedLogins, out var CreatedSessions);
+                session.ConnectAuxiliarySessions(DisconnectedSlots, out HashSet<string> FailedLogins, out HashSet<string> CreatedSessions);
 
                 var Result = CommandHelpers.CreateCommandResultEmbed("Add Auxiliary Sessions Results",
                     null,
-                    ColorHelpers.GetResultEmbedStatusColor(CreatedSessions.Count, FailedLogins.Count + AlreadyConnectedSlots.Count + InvalidSlotNames.Count),
+                    ColorHelpers.GetResultEmbedStatusColor(CreatedSessions.Count, FailedLogins.Count + ConnectedSlots.Count + InvalidSlotNames.Count),
                     ("Sessions Created", CreatedSessions),
                     ("Failed Logins", FailedLogins),
-                    ("Already Connected", AlreadyConnectedSlots),
+                    ("Already Connected", ConnectedSlots),
                     ("Invalid Slot Name", InvalidSlotNames));
 
                 await command.ModifyOriginalResponseAsync(x => x.Embed = Result.Build());
@@ -95,21 +73,24 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             {
                 var SlotArgs = commandData.GetArg("slots")?.GetValue<string>();
 
-                HashSet<string> ActiveAuxSessions = [.. session!.AuxiliarySessions.Keys];
-                HashSet<string> SessionToRemove =
-                    String.IsNullOrWhiteSpace(SlotArgs) ?
-                    [.. session!.AuxiliarySessions.Keys] :
-                    [.. SlotArgs.TrimSplit(",")];
+                var TargetSlots = string.IsNullOrWhiteSpace(SlotArgs) ? session.GetAuxiliarySlotNames(true) : SlotArgs.TrimSplit(",");
 
-                await command.RespondAsync(embed: SessionToRemove.CreateEmbedResultsList("Attempting to disconnect auxiliary connections for"));
+                HashSet<string> ConnectedSlots = [.. TargetSlots.Where(x => session.GetAuxiliarySlotNames(true).Contains(x))];
+                HashSet<string> InvalidSlotNames = [.. TargetSlots.Where(x => !session.GetAuxiliarySlotNames().Contains(x))];
+                HashSet<string> DisconnectedSlots = [.. TargetSlots.Where(x => session.GetAuxiliarySlotNames(false).Contains(x))];
+
+                await command.RespondAsync(embed: ConnectedSlots.CreateEmbedResultsList("Attempting to disconnect auxiliary connections for"));
 
                 //Results
-                session.DisconnectAuxiliarySessions(SessionToRemove, out var RemovedSessions, out var NotConnectedSlots);
+                session.DisconnectAuxiliarySessions(ConnectedSlots, out HashSet<string> FailedLogouts, out HashSet<string> RemovedSessions);
 
-                var Result = CommandHelpers.CreateCommandResultEmbed("Remove Auxiliary Sessions Results", null,
-                    ColorHelpers.GetResultEmbedStatusColor(RemovedSessions, NotConnectedSlots),
-                    ("Removed Sessions", RemovedSessions),
-                    ("Session not Found", NotConnectedSlots));
+                var Result = CommandHelpers.CreateCommandResultEmbed("Remove Auxiliary Sessions Results",
+                    null,
+                    ColorHelpers.GetResultEmbedStatusColor(RemovedSessions.Count, FailedLogouts.Count + DisconnectedSlots.Count + InvalidSlotNames.Count),
+                    ("Sessions Removed", RemovedSessions),
+                    ("Failed Logouts", FailedLogouts),
+                    ("Not Connected", DisconnectedSlots),
+                    ("Invalid Slot Name", InvalidSlotNames));
 
                 await command.ModifyOriginalResponseAsync(x => x.Embed = Result.Build());
             }
@@ -140,17 +121,14 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     return;
                 }
                 ArchipelagoSession TargetSession;
+                var AuxiliarySession = session!.GetAuxiliarySession(SlotArgs);
                 if (SlotArgs == session!.ArchipelagoSession.Players.ActivePlayer.Name)
-                {
                     TargetSession = session.ArchipelagoSession;
-                }
-                else if (session!.AuxiliarySessions.TryGetValue(SlotArgs, out ArchipelagoSession? AuxiliarySession))
-                {
+                else if (AuxiliarySession is not null && AuxiliarySession.Socket.Connected)
                     TargetSession = AuxiliarySession;
-                }
                 else
                 {
-                    await command.RespondAsync("The given slot did not have an active auxiliary connection", ephemeral: true);
+                    await command.RespondAsync("The given slot did not have an active connection", ephemeral: true);
                     return;
                 }
                 await command.RespondAsync($"[{TargetSession.Players.ActivePlayer.Name}] {MessageArgs}", ephemeral: true);

@@ -47,31 +47,15 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             bot.ActiveSessions.Remove(channelId);
             if (session.ArchipelagoSession.Socket.Connected) { await session.ArchipelagoSession.Socket.DisconnectAsync(); }
 
-            foreach (var auxSession in session.AuxiliarySessions.Values)
+            foreach (var A in session.GetAuxiliarySlotNames())
             {
+                var auxSession = session.GetAuxiliarySession(A)!;
                 if (auxSession.Socket.Connected) { await auxSession.Socket.DisconnectAsync(); }
             }
-            session.AuxiliarySessions.Clear();
 
             OnChannelClosed?.Invoke(session);
         }
-        /// <summary>
-        /// Sets up message handlers for an auxiliary Archipelago session.
-        /// </summary>
-        /// <param name="botSession">The active bot session.</param>
-        /// <param name="auxiliaryConnection">The auxiliary Archipelago session.</param>
-        public static void CreateArchipelagoHandlers(this Sessions.ActiveBotSession botSession, ArchipelagoSession auxiliaryConnection)
-        {
-            auxiliaryConnection.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
 
-            void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
-            {
-                if (message is not CommandResultLogMessage && message is not HintItemSendLogMessage) return;
-                if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) return;
-
-                botSession.QueueMessageForChannel(message.FormatLogMessage(botSession));
-            }
-        }
         /// <summary>
         /// Sets up message handlers for the primary Archipelago session connection.
         /// </summary>
@@ -176,7 +160,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                     sessionConstructor.ArchipelagoConnectionInfo!.Name,
                     ItemsHandlingFlags.AllItems,
                     Constants.APVersion,
-                    ["TextOnly"], null,
+                    [Constants.ArchipelagoTags.TextOnly.ToString()], null,
                     sessionConstructor.ArchipelagoConnectionInfo!.Password,
                     true);
 
@@ -220,53 +204,58 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
         }
 
-        public static void ConnectAuxiliarySessions(this Sessions.ActiveBotSession session, HashSet<PlayerInfo> Slots, out HashSet<string> FailedLogins, out HashSet<string> CreatedSessions)
+        public static void ConnectAuxiliarySessions(this Sessions.ActiveBotSession session, HashSet<string> Slots, out HashSet<string> FailedLogins, out HashSet<string> CreatedSessions)
         {
             FailedLogins = [];
             CreatedSessions = [];
             foreach (var slot in Slots)
             {
-                var supportSession = ArchipelagoSessionFactory.CreateSession(session.ArchipelagoSession.Socket.Uri);
-                var ConnectionResult = supportSession.TryConnectAndLogin(
-                    slot.Game,
-                    slot.Name,
+                var AuxConnection = session.GetAuxiliarySession(slot);
+                if (AuxConnection is null)
+                {
+                    FailedLogins.Add(slot);
+                    continue;
+                }
+
+                var ConnectionResult = AuxConnection.TryConnectAndLogin(
+                    null,
+                    slot,
                     ItemsHandlingFlags.AllItems,
                     Constants.APVersion,
-                    ["TextOnly"],
+                    [Constants.ArchipelagoTags.TextOnly.ToString()],
                     null,
                     session.ConnectionInfo.Password);
+
                 if (ConnectionResult is LoginSuccessful)
-                {
-                    CreatedSessions.Add(slot.Name);
-                    session.AuxiliarySessions.Add(slot.Name, supportSession);
-                    session.CreateArchipelagoHandlers(supportSession);
-                }
+                    CreatedSessions.Add(slot);
                 else
-                {
-                    FailedLogins.Add(slot.Name);
-                }
+                    FailedLogins.Add(slot);
             }
 
             OnAuxSessionCreated?.Invoke(session, CreatedSessions);
         }
 
-        public static void DisconnectAuxiliarySessions(this Sessions.ActiveBotSession session, HashSet<string> SessionToRemove, out HashSet<string> RemovedSessions, out HashSet<string> NotConnectedSlots)
+        public static void DisconnectAuxiliarySessions(this Sessions.ActiveBotSession session, HashSet<string> Slots, out HashSet<string> FailedLogouts, out HashSet<string> RemovedSessions)
         {
             //Results
+            FailedLogouts = [];
             RemovedSessions = [];
-            NotConnectedSlots = [];
-            foreach (var Session in SessionToRemove)
+            foreach (var slot in Slots)
             {
-                var Valid = session!.AuxiliarySessions.TryGetValue(Session, out ArchipelagoSession? APSession);
-                if (Valid)
+                var AuxConnection = session.GetAuxiliarySession(slot);
+                if (AuxConnection is null)
                 {
-                    session!.AuxiliarySessions.Remove(Session);
-                    APSession!.Socket.DisconnectAsync();
-                    RemovedSessions.Add(Session);
+                    FailedLogouts.Add(slot);
+                    continue;
                 }
-                else
+                try
                 {
-                    NotConnectedSlots.Add(Session);
+                    AuxConnection!.Socket.DisconnectAsync();
+                    RemovedSessions.Add(slot);
+                }
+                catch
+                {
+                    FailedLogouts.Add(slot);
                 }
             }
 

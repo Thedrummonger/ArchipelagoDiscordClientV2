@@ -1,6 +1,10 @@
 ﻿using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.MessageLog.Messages;
 using ArchipelagoDiscordClientLegacy.Handlers;
+using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord.WebSocket;
+using Newtonsoft.Json.Linq;
+using System.Collections.Immutable;
 using TDMUtils;
 
 namespace ArchipelagoDiscordClientLegacy.Data
@@ -26,13 +30,13 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 ConnectionInfo = sessionConstructor.ArchipelagoConnectionInfo!.DeepClone();
                 DiscordChannel = channel;
                 ArchipelagoSession = APSession;
-                AuxiliarySessions = [];
+                AuxiliarySessions = BuildAuxiliarySessions();
                 ParentBot = parent;
             }
+            private readonly ImmutableDictionary<string, ArchipelagoSession> AuxiliarySessions;
             public DiscordBotData.DiscordBot ParentBot { get; private set; }
             public ISocketMessageChannel DiscordChannel { get; private set; }
             public ArchipelagoSession ArchipelagoSession { get; private set; }
-            public Dictionary<string, ArchipelagoSession> AuxiliarySessions { get; private set; }
             public SessionSetting Settings { get; private set; }
             public ArchipelagoConnectionInfo ConnectionInfo { get; private set; }
             public ActiveSessionMessageQueue MessageQueue { get; private set; }
@@ -43,6 +47,27 @@ namespace ArchipelagoDiscordClientLegacy.Data
             /// This dictionary acts as an extensibility point, enabling external processes to attach custom data.
             /// </remarks>
             public Dictionary<string, object> Metadata { get; private set; } = [];
+
+            public ArchipelagoSession? GetAuxiliarySession(string? key) => key is not null && AuxiliarySessions.TryGetValue(key, out var AS) ? AS : null;
+            public string[] GetAuxiliarySlotNames(bool? FilerConnected = null) =>
+                [.. AuxiliarySessions.Where(x => FilerConnected is null || FilerConnected.Value == x.Value.Socket.Connected).Select(x => x.Key)];
+            private ImmutableDictionary<string, ArchipelagoSession> BuildAuxiliarySessions()
+            {
+                var builder = ImmutableDictionary.CreateBuilder<string, ArchipelagoSession>();
+                foreach (var i in ArchipelagoSession.Players.AllPlayers)
+                {
+                    if (i == ArchipelagoSession.Players.ActivePlayer || i.Slot == 0)
+                        continue;
+                    builder[i.Name] = ArchipelagoSessionFactory.CreateSession(ArchipelagoSession.Socket.Uri);
+                    builder[i.Name].MessageLog.OnMessageReceived += (LogMessage message) =>
+                    {
+                        if (message is not CommandResultLogMessage && message is not HintItemSendLogMessage) return;
+                        if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, this)) return;
+                        this.QueueMessageForChannel(message.FormatLogMessage(this));
+                    };
+                }
+                return builder.ToImmutable();
+            }
         }
         /// <summary>
         /// Stores connection details required to connect to an Archipelago server.

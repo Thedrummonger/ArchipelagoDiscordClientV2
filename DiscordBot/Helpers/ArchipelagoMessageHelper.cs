@@ -64,7 +64,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// <returns>True if the message should be relayed, otherwise false.</returns>
         public static bool ShouldRelayHintMessage(this HintItemSendLogMessage hintLogMessage, ActiveBotSession session) =>
             hintLogMessage.IsReceiverTheActivePlayer || 
-            !hintLogMessage.Receiver.Name.In([.. session.AuxiliarySessions.Keys, session.ArchipelagoSession.Players.ActivePlayer.Name]);
+            !hintLogMessage.Receiver.Name.In([.. session.GetAuxiliarySlotNames(true), session.ArchipelagoSession.Players.ActivePlayer.Name]);
 
         /// <summary>
         /// Determines whether a log message should be ignored based on session settings.
@@ -120,7 +120,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         {
             if (!session.Settings.IgnoreConnectedPlayerChats) { return false; }
             if (logMessage.Player.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) return true;
-            if (logMessage.Player.Name.In([.. session.AuxiliarySessions.Keys])) return true;
+            if (logMessage.Player.Name.In([.. session.GetAuxiliarySlotNames(true)])) return true;
             return false;
         }
 
@@ -137,13 +137,13 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             {
                 case PlayerSpecificLogMessage playerSpecificLogMessage:
                     if (playerSpecificLogMessage.Player.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) { return false; }
-                    if (playerSpecificLogMessage.Player.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
+                    if (playerSpecificLogMessage.Player.Name.In([.. session.GetAuxiliarySlotNames(true)])) { return false; }
                     break;
                 case ItemSendLogMessage ItemSendMessage:
                     if (ItemSendMessage.Sender.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) { return false; }
                     if (ItemSendMessage.Receiver.Name == session.ArchipelagoSession.Players.ActivePlayer.Name) { return false; }
-                    if (ItemSendMessage.Sender.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
-                    if (ItemSendMessage.Receiver.Name.In([.. session.AuxiliarySessions.Keys])) { return false; }
+                    if (ItemSendMessage.Sender.Name.In([.. session.GetAuxiliarySlotNames(true)])) { return false; }
+                    if (ItemSendMessage.Receiver.Name.In([.. session.GetAuxiliarySlotNames(true)])) { return false; }
                     break;
             }
             return true;

@@ -49,10 +49,11 @@ namespace ArchipelagoDiscordClientLegacy.Commands
             var MessageArgs = commandData.GetArg("hint")?.GetValue<string>();
 
             ArchipelagoSession TargetSession;
+            var AuxSession = session!.GetAuxiliarySession(SlotArgs);
             if (String.IsNullOrWhiteSpace(SlotArgs) || SlotArgs == session!.ArchipelagoSession.Players.ActivePlayer.Name)
                 TargetSession = session!.ArchipelagoSession;
-            else if (session!.AuxiliarySessions.TryGetValue(SlotArgs, out ArchipelagoSession? AuxiliarySession))
-                TargetSession = AuxiliarySession;
+            else if (AuxSession is not null && AuxSession.Socket.Connected)
+                TargetSession = AuxSession;
             else
             {
                 await command.RespondAsync("The given slot did not have an active auxiliary connection", ephemeral: true);

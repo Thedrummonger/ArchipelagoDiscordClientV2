@@ -130,14 +130,7 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     .AddField("Sessions", string.Join("\n", SessionInfo.AuxiliarySessions));
                 EmbedBuilder[] SendEmbeds = [ResultEmbed, AuxiliaryEmbed];
                 await command.ModifyOriginalResponseAsync(msg => msg.Embeds = SendEmbeds.Select(x => x.Build()).ToArray());
-                HashSet<PlayerInfo> AuxiliarySlots = [];
-                foreach (var Slot in SessionInfo.AuxiliarySessions)
-                {
-                    var slotInfo = Session.ArchipelagoSession.Players.AllPlayers.FirstOrDefault(x => x.Name == Slot);
-                    if (slotInfo is null) continue;
-                    AuxiliarySlots.Add(slotInfo);
-                }
-                Session.ConnectAuxiliarySessions(AuxiliarySlots, out var failedLogins, out var createdSessions);
+                Session.ConnectAuxiliarySessions(SessionInfo.AuxiliarySessions, out var failedLogins, out var createdSessions);
                 discordBot.UpdateConnectionCache(Session.DiscordChannel.Id);
 
                 AuxiliaryEmbed = CommandHelpers.CreateCommandResultEmbed(

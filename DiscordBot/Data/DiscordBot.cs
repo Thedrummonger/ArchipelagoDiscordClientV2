@@ -71,7 +71,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 var ActiveSession = ActiveSessions[ChannelID];
                 var CachedSession = ConnectionCache[ChannelID];
                 CachedSession.Settings = ActiveSession.Settings;
-                CachedSession.AuxiliarySessions = [.. ActiveSession.AuxiliarySessions.Keys];
+                CachedSession.AuxiliarySessions = [.. ActiveSession.GetAuxiliarySlotNames(true)];
                 UpdateConnectionCache();
             }
             private void UpdateConnectionCache() => File.WriteAllText(Constants.Paths.ConnectionCache, ConnectionCache.ToFormattedJson());

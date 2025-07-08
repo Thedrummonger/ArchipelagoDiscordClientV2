@@ -3,6 +3,15 @@
     public static class Constants
     {
         public static readonly Version APVersion = new Version(0, 6, 1);
+        public enum ArchipelagoTags
+        {
+            AP,
+            DeathLink,
+            HintGame,
+            Tracker,
+            TextOnly,
+            NoText
+        }
 
         public static class Paths
         {

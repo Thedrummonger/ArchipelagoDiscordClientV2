@@ -39,14 +39,15 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                                $"  **Server**: {APSession.Socket.Uri}\n" +
                                $"  **Player**: {APSession.Players.ActivePlayer.Name}[SLOT:{APSession.ConnectionInfo.Slot}]\n" +
                                $"  **Game**: {APSession.Players.ActivePlayer.Game}";
-                if (ActiveSession.AuxiliarySessions.Count > 0)
+                var AuxSessions = ActiveSession.GetAuxiliarySlotNames(true);
+                if (AuxSessions.Length > 0)
                 {
                     response += $"\n**Active Auxiliary Archipelago Session**\n";
-                    foreach (var session in ActiveSession.AuxiliarySessions)
+                    foreach (var session in AuxSessions.Select(ActiveSession.GetAuxiliarySession))
                     {
                         response +=
-                            $"- **Player**: {session.Value.Players.ActivePlayer.Name}[SLOT:{session.Value.ConnectionInfo.Slot}]\n" +
-                            $"  **Game**: {session.Value.Players.ActivePlayer.Game}\n";
+                            $"- **Player**: {session!.Players.ActivePlayer.Name}[SLOT:{session.ConnectionInfo.Slot}]\n" +
+                            $"  **Game**: {session.Players.ActivePlayer.Game}\n";
                     }
                 }
 

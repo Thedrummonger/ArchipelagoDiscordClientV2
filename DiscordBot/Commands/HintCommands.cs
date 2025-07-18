@@ -111,39 +111,15 @@ namespace ArchipelagoDiscordClientLegacy.Commands
                     if (filter is not null && hint.Found != filter) continue;
                     var FindingPlayer = session.ArchipelagoSession.Players.GetPlayerInfo(hint.FindingPlayer);
                     var ReceivingPlayer = session.ArchipelagoSession.Players.GetPlayerInfo(hint.ReceivingPlayer);
-                    var Item = session.ArchipelagoSession.Items.GetItemName(hint.ItemId, ReceivingPlayer.Game);
-                    var Location = session.ArchipelagoSession.Locations.GetLocationNameFromId(hint.LocationId, FindingPlayer.Game);
+                    var Item = ColorHelpers.GetColoredString(session.ArchipelagoSession.Items.GetItemName(hint.ItemId, ReceivingPlayer.Game), hint.ItemFlags);
+                    var Location = session.ArchipelagoSession.Locations.GetLocationNameFromId(hint.LocationId, FindingPlayer.Game).SetColor(ColorHelpers.Locations.Location);
                     var Entrance = hint.Entrance;
 
-                    var FindingPlayerName = FindingPlayer.Name;
-                    var ReceivingPlayerName = ReceivingPlayer.Name;
+                    var FindingPlayerName = FindingPlayer.GetColoredString(TargetPlayer.Name);
+                    var ReceivingPlayerName = ReceivingPlayer.GetColoredString(TargetPlayer.Name);
+                    var EntranceLine = Entrance.IsNullOrWhiteSpace() ? "" : $" at {Entrance.SetColor(ColorHelpers.Locations.Entrance)}";
+                    var FoundString = hint.GetColoredString();
 
-                    var FoundColor = hint.Status switch
-                    {
-                        HintStatus.Found => ColorHelpers.Hints.found,
-                        HintStatus.Priority => ColorHelpers.Items.Progression,
-                        HintStatus.Avoid => ColorHelpers.Items.Traps,
-                        HintStatus.NoPriority => ColorHelpers.Items.Normal,
-                        _ => Archipelago.MultiClient.Net.Models.Color.White,
-                    };
-                    var FoundString = ColorHelpers.SetColor(hint.Status.ToString(), FoundColor);
-
-                    if (hint.ItemFlags.HasFlag(ItemFlags.Advancement)) { Item = Item.SetColor(ColorHelpers.Items.Progression); }
-                    else if (hint.ItemFlags.HasFlag(ItemFlags.NeverExclude)) { Item = Item.SetColor(ColorHelpers.Items.Important); }
-                    else if (hint.ItemFlags.HasFlag(ItemFlags.Trap)) { Item = Item.SetColor(ColorHelpers.Items.Traps); }
-                    else { Item = Item.SetColor(ColorHelpers.Items.Normal); }
-
-                    Location = Location.SetColor(ColorHelpers.Locations.Location);
-                    var EntranceLine = Entrance.IsNullOrWhiteSpace() ? "" :
-                        $" at {Entrance.SetColor(ColorHelpers.Locations.Entrance)}";
-
-                    FindingPlayerName = FindingPlayer.Slot == TargetPlayer.Slot ?
-                        FindingPlayerName.SetColor(ColorHelpers.Players.Local) :
-                        FindingPlayerName.SetColor(ColorHelpers.Players.Other);
-
-                    ReceivingPlayerName = ReceivingPlayer.Slot == TargetPlayer.Slot ?
-                        ReceivingPlayerName.SetColor(ColorHelpers.Players.Local) :
-                        ReceivingPlayerName.SetColor(ColorHelpers.Players.Other);
                     string HintLine = $"{ReceivingPlayerName}'s {Item} is at {Location} in {FindingPlayerName}'s world {EntranceLine}({FoundString})";
 
                     Messages.Add(new QueuedItemLogMessage(HintLine));

@@ -1,4 +1,8 @@
-﻿namespace ArchipelagoDiscordClientLegacy.Helpers
+﻿using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net.Models;
+
+namespace ArchipelagoDiscordClientLegacy.Helpers
 {
     /// <summary>
     /// Provides helper methods and predefined color mappings for formatting text with color in Discord messages.
@@ -43,6 +47,35 @@
         /// </returns>
         public static Discord.Color GetResultEmbedStatusColor(int successCount, int failureCount) =>
             failureCount == 0 ? Discord.Color.Green : successCount > 0 ? Discord.Color.Orange : Discord.Color.Red;
+
+        public static string GetColoredString(this ItemInfo item) => GetColoredString(item.ItemName, item.Flags);
+        public static string GetColoredString(string ItemName, ItemFlags flags)
+        {
+            var Final = ItemName;
+            if (flags.HasFlag(ItemFlags.Advancement)) { Final = Final.SetColor(ColorHelpers.Items.Progression); }
+            else if (flags.HasFlag(ItemFlags.NeverExclude)) { Final = Final.SetColor(ColorHelpers.Items.Important); }
+            else if (flags.HasFlag(ItemFlags.Trap)) { Final = Final.SetColor(ColorHelpers.Items.Traps); }
+            else { Final = Final.SetColor(ColorHelpers.Items.Normal); }
+            return Final;
+        }
+        public static string GetColoredString(this PlayerInfo Player, string ActivePlayerName)
+        {
+            string PlayerString = Player.Name;
+            return Player.Name == ActivePlayerName ? PlayerString.SetColor(ColorHelpers.Players.Local) : PlayerString.SetColor(ColorHelpers.Players.Other);
+        }
+        public static string GetColoredString(this Hint hint)
+        {
+            var FoundColor = hint.Status switch
+            {
+                HintStatus.Found => ColorHelpers.Hints.found,
+                HintStatus.Priority => ColorHelpers.Items.Progression,
+                HintStatus.Avoid => ColorHelpers.Items.Traps,
+                HintStatus.NoPriority => ColorHelpers.Items.Normal,
+                _ => Archipelago.MultiClient.Net.Models.Color.White,
+            };
+            return ColorHelpers.SetColor(hint.Status.ToString(), FoundColor);
+
+        }
 
         /// <summary>
         /// Predefined color mappings for hint-related messages.

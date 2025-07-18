@@ -81,9 +81,10 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             };
             void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
             {
-                if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession)) { return; }
+                if (!ArchipelagoMessageHelper.ShouldIgnoreMessage(message, botSession))
+                    botSession.QueueMessageForChannel(message.FormatLogMessage(botSession));
 
-                botSession.QueueMessageForChannel(message.FormatLogMessage(botSession));
+                RecentItemTrackingHelper.CacheItemSendMessage(botSession, message);
             }
         }
 

@@ -3,7 +3,6 @@ using Archipelago.MultiClient.Net.MessageLog.Messages;
 using ArchipelagoDiscordClientLegacy.Handlers;
 using ArchipelagoDiscordClientLegacy.Helpers;
 using Discord.WebSocket;
-using Newtonsoft.Json.Linq;
 using System.Collections.Immutable;
 using TDMUtils;
 
@@ -34,6 +33,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
                 ParentBot = parent;
             }
             private readonly ImmutableDictionary<string, ArchipelagoSession> AuxiliarySessions;
+            public List<ItemSendLogMessage> RecentItems { get; private set; } = []; 
             public DiscordBotData.DiscordBot ParentBot { get; private set; }
             public ISocketMessageChannel DiscordChannel { get; private set; }
             public ArchipelagoSession ArchipelagoSession { get; private set; }

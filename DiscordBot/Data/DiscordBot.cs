@@ -15,6 +15,7 @@ namespace ArchipelagoDiscordClientLegacy.Data
         /// </summary>
         public class DiscordBot
         {
+            public bool LogToConsole = true;
             public Dictionary<ulong, ActiveBotSession> ActiveSessions = [];
             public Dictionary<ulong, SessionConstructor> ConnectionCache = [];
             public AppSettings appSettings;

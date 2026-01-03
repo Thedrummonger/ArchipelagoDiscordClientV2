@@ -43,7 +43,8 @@ namespace ArchipelagoDiscordClientLegacy
             BotClient.Client.MessageReceived += BotClient.DiscordMessageHandler.HandleDiscordMessageReceivedAsync;
             BotClient.Client.Log += (logMessage) =>
             {
-                Console.WriteLine(logMessage.ToString());
+                if (BotClient.LogToConsole)
+                    Console.WriteLine(logMessage.ToString());
                 return Task.CompletedTask;
             };
 

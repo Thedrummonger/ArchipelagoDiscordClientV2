@@ -10,9 +10,18 @@ namespace ArchipelagoDiscordClientLegacy
     public class Program
     {
         public static bool ShowHeartbeat = false;
-        static async Task Main(string[] args) => await RunBotAsync(args);
+        static async Task Main(string[] args)
+        {
+            var BotClient = await RunBotAsync(args);
 
-        public static async Task RunBotAsync(string[] args)
+            //Allow for console commands, this loop will not exit unless the exit command is entered
+            ConsoleCommandHandlers.RunUserInputLoop(BotClient);
+
+            //If the above loop does exit, most likely because the exit command has been executed, gracefully close all connections before closing the application
+            await BotClient.DisconnectAllClients();
+        }
+
+        public static async Task<DiscordBot> RunBotAsync(string[] args)
         {
             if (!Path.Exists(Constants.Paths.BaseFilePath)) { Directory.CreateDirectory(Constants.Paths.BaseFilePath); }
             var Config = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConfigFile, new AppSettings(), true);
@@ -46,12 +55,7 @@ namespace ArchipelagoDiscordClientLegacy
             //Run a background loop to monitor server connections and clean up any closed or abandoned server connections
             _ = Task.Run(BotClient.MonitorAndHandleAPServerClose);
 
-
-            //Allow for console commands, this loop will not exit unless the exit command is entered
-            ConsoleCommandHandlers.RunUserInputLoop(BotClient);
-
-            //If the above loop does exit, most likely because the exit command has been executed, gracefully close all connections before closing the application
-            await BotClient.DisconnectAllClients();
+            return BotClient;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Archipelago.MultiClient.Net;
+﻿using System.Diagnostics;
+using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
@@ -69,15 +70,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 // as it primarily fires when the bot disconnects manually.
                 // Server closures are currently handled in `CheckServerConnection`.
                 if (!botSession.ParentBot.ActiveSessions.ContainsKey(botSession.DiscordChannel.Id)) { return; } //Bot was disconnected already
-                await CleanAndCloseChannel(botSession.ParentBot, botSession.DiscordChannel.Id);
-                var DisconnectEmbed = new EmbedBuilder()
-                    .WithColor(Color.Orange)
-                    .WithTitle("Session Disconnected")
-                    .WithFields(
-                        new EmbedFieldBuilder().WithName("Server").WithValue(botSession.ConnectionInfo.ToFormattedJson()),
-                        new EmbedFieldBuilder().WithName("Reason").WithValue("Archipelago server closed")
-                    ).Build();
-                botSession.ParentBot.QueueAPIAction(botSession.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
+                await HandleServerClosed(botSession.ParentBot, botSession.DiscordChannel.Id, botSession);
             };
             void MessageLog_OnMessageReceived(Archipelago.MultiClient.Net.MessageLog.Messages.LogMessage message)
             {
@@ -100,21 +93,27 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 foreach (var i in CurrentSessions)
                 {
                     if (!discordBot.ActiveSessions.TryGetValue(i, out var session)) continue;
-                    if (!session.ArchipelagoSession.Socket.Connected)
-                    {
-                        await discordBot.CleanAndCloseChannel(i);
-                        var DisconnectEmbed = new EmbedBuilder()
-                            .WithColor(Color.Orange)
-                            .WithTitle("Session Disconnected")
-                            .WithFields(
-                                new EmbedFieldBuilder().WithName("Server").WithValue(session.ConnectionInfo.ToFormattedJson()),
-                                new EmbedFieldBuilder().WithName("Reason").WithValue("Archipelago server closed")
-                            ).Build();
-                        discordBot.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
-                    }
+                    if (session.ArchipelagoSession.Socket.Connected) continue;
+                    await HandleServerClosed(discordBot, i, session);
                 }
                 await Task.Delay(500);
             }
+        }
+
+        public static async Task HandleServerClosed(DiscordBot discordBot, ulong ChannelID, Sessions.ActiveBotSession session)
+        {
+            await discordBot.CleanAndCloseChannel(ChannelID);
+            var DisconnectEmbed = new EmbedBuilder()
+                .WithColor(Color.Orange)
+                .WithTitle("Session Disconnected")
+                .WithFields(
+                    new EmbedFieldBuilder().WithName("Server").WithValue(session.ConnectionInfo.ToFormattedJson()),
+                    new EmbedFieldBuilder().WithName("Reason").WithValue("Archipelago server closed")
+                ).Build();
+            discordBot.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
+            Console.WriteLine($"Reconnecting: {session.Settings.AutoReconnect}");
+            if (session.Settings.AutoReconnect)
+                _ = OpenReconnectionThread(discordBot, session.DiscordChannel, session.ConnectionInfo);
         }
 
         /// <summary>
@@ -261,6 +260,58 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             }
 
             OnAuxSessionClosed?.Invoke(session, RemovedSessions);
+        }
+
+        public static async Task OpenReconnectionThread(DiscordBot Bot, ISocketMessageChannel Channel, Sessions.ArchipelagoConnectionInfo data)
+        {
+            await Channel.SendMessageAsync(embed: new EmbedBuilder().WithDescription($"Attempting Reconnection when server is rebooted..").Build());
+            var startTime = DateTime.UtcNow;
+            var maxDuration = TimeSpan.FromHours(48);
+            bool ServerUp = false;
+            var Constructor = Bot.ConnectionCache.TryGetValue(Channel.Id, out var Value) ? Value
+                : new Sessions.SessionConstructor { ArchipelagoConnectionInfo = data, Settings = Bot.appSettings.AppDefaultSettings };
+            Console.WriteLine($"{Channel.Id} Starting Reconnection Thread");
+            Thread.Sleep(15000);
+            while (DateTime.UtcNow - startTime < maxDuration && !Bot.ActiveSessions.ContainsKey(Channel.Id) && !ServerUp)
+            {
+                if (Program.ShowHeartbeat) Console.WriteLine($"{Channel.Id} Checking Server {data.IP}:{data.Port}");
+                try
+                {
+                    var session = ArchipelagoSessionFactory.CreateSession(data.IP, data.Port);
+                    await session.ConnectAsync();
+                    if (session.Socket.Connected)
+                    {
+                        if (Program.ShowHeartbeat) Console.WriteLine($"{Channel.Id} Server Up reconnecting");
+                        ServerUp = true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    if (Program.ShowHeartbeat) Console.WriteLine($"{Channel.Id} Server did not respond {e.Message}");
+                }
+                Thread.Sleep(15000);
+            }
+
+            if (ServerUp)
+            {
+                var ReconnectNotif = await Channel.SendMessageAsync(embed: new EmbedBuilder().WithDescription($"Server restarted, attempting reconnect..").Build());
+                if (ConnectToAPServer(Bot, Channel, Constructor, out var Message))
+                {
+                    await ReconnectNotif.ModifyAsync(x => x.Embed = new EmbedBuilder().WithDescription(Message).WithColor(Color.Green).Build());
+                    if (Constructor.AuxiliarySessions.Count > 0)
+                    {
+                        var AuxNotif = await Channel.SendMessageAsync(embed: new EmbedBuilder().WithDescription($"Reconnecting Aux Sessions...").Build());
+                        Bot.ActiveSessions[Channel.Id].ConnectAuxiliarySessions(Constructor.AuxiliarySessions, out var failedLogins, out var createdSessions);
+                        await AuxNotif.ModifyAsync(x => x.Embed = new EmbedBuilder().WithDescription($"Aux Sessions Reconnected").Build());
+                    }
+                }
+                else
+                    await ReconnectNotif.ModifyAsync(x => x.Embed = new EmbedBuilder().WithDescription(Message).WithColor(Color.Red).Build());
+            }
+            else if (DateTime.UtcNow - startTime < maxDuration) 
+                await Channel.SendMessageAsync(embed: new EmbedBuilder().WithColor(Color.Orange)
+                    .WithDescription($"Server reconnection time out, server has been down for 48 hours. Manual reconnection required.").Build());
+            
         }
     }
 }

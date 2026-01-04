@@ -21,6 +21,8 @@ namespace ArchipelagoDiscordClientLegacy.Data
         public bool IgnoreLeaveJoin { get; set; } = true;
         [Description("Ignores messages regarding locations being check and items being received.")]
         public bool IgnoreItemSend { get; set; } = false;
+        [Description("Ignores messages regarding filler items being check and items being received.")]
+        public bool IgnoreFiller { get; set; } = true;
         [Description("Ignores messages regarding hints.")]
         public bool IgnoreHints { get; set; } = false;
         [Description("Ignores player chat messages")]
@@ -29,6 +31,8 @@ namespace ArchipelagoDiscordClientLegacy.Data
         public bool IgnoreConnectedPlayerChats { get; set; } = true;
         [Description("Ignores Item and Hint related messages if the connected player or any of the Auxiliary Connections are not the sender or receiver")]
         public bool IgnoreUnrelated { get; set; } = true;
+        [Description("Should the bot try to reconnect every 15 seconeds if the Archipelago server is shutdown")]
+        public bool AutoReconnect { get; set; } = true;
         public HashSet<string> IgnoreTags { get; set; } = [];
         public Dictionary<ulong, HashSet<string>> SlotAssociations { get; set; } = [];
 

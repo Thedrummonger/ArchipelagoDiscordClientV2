@@ -1,6 +1,7 @@
 ﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
 using ArchipelagoDiscordClientLegacy.Data;
 using System.Text.RegularExpressions;
+using Archipelago.MultiClient.Net.Enums;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
@@ -93,9 +94,8 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 case HintItemSendLogMessage message:
                     return session.Settings.IgnoreHints || !message.ShouldRelayHintMessage(session) || logMessage.ShouldIgnoreUnrelated(session);
 
-                case ItemCheatLogMessage:
-                case ItemSendLogMessage:
-                    return session.Settings.IgnoreItemSend || logMessage.ShouldIgnoreUnrelated(session);
+                case ItemSendLogMessage message:
+                    return session.Settings.IgnoreItemSend || logMessage.ShouldIgnoreUnrelated(session) || message.ShouldIgnoreFiller(session);
 
                 case AdminCommandResultLogMessage:
                 case GoalLogMessage:
@@ -149,10 +149,21 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
             return true;
         }
 
+        public static bool ShouldIgnoreFiller(this ItemSendLogMessage logMessage, ActiveBotSession session)
+        {
+            if (!session.Settings.IgnoreFiller)
+                return false;
+            if (logMessage.Item.Flags.HasFlag(ItemFlags.Trap))
+                return false;
+            if (logMessage.Item.Flags.HasFlag(ItemFlags.NeverExclude))
+                return false;
+            return !logMessage.Item.Flags.HasFlag(ItemFlags.Advancement);
+        }
+
         /// <summary>
         /// Extracts tags from a LeaveLogMessage, since this message type does not natively store tags.
         /// </summary>
-        /// <param name="message">The leave log message.</param>
+        /// <param name="Message">The leave log message.</param>
         /// <returns>A set of extracted tags.</returns>
         public static HashSet<string> GetTags(this LeaveLogMessage Message)
         {

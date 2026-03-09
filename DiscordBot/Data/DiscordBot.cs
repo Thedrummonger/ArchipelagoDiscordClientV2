@@ -2,7 +2,7 @@
 using ArchipelagoDiscordClientLegacy.Handlers;
 using Discord;
 using Discord.WebSocket;
-using System.Diagnostics;
+using System.Collections.Concurrent;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
 
@@ -16,8 +16,8 @@ namespace ArchipelagoDiscordClientLegacy.Data
         public class DiscordBot
         {
             public bool LogToConsole = true;
-            public Dictionary<ulong, ActiveBotSession> ActiveSessions = [];
-            public Dictionary<ulong, SessionConstructor> ConnectionCache = [];
+            public ConcurrentDictionary<ulong, ActiveBotSession> ActiveSessions = [];
+            public ConcurrentDictionary<ulong, SessionConstructor> ConnectionCache = [];
             public AppSettings appSettings;
             public CommandRegistry commandRegistry;
             public SlashCommandHandlers CommandHandler;

@@ -45,7 +45,7 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
 
             Console.WriteLine($"Disconnecting Channel {session.DiscordChannel.Name} from server {session.ArchipelagoSession.Socket.Uri}");
             OnChannelClosing?.Invoke(session);
-            bot.ActiveSessions.Remove(channelId);
+            bot.ActiveSessions.Remove(channelId, out _);
             if (session.ArchipelagoSession.Socket.Connected) { await session.ArchipelagoSession.Socket.DisconnectAsync(); }
 
             foreach (var A in session.GetAuxiliarySlotNames())
@@ -137,9 +137,12 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
                 discordBot.QueueAPIAction(session.DiscordChannel, new MessageQueueData.QueuedMessage(DisconnectEmbed));
             }
             Console.WriteLine("Waiting for Queue to clear...");
-            while (discordBot.DiscordAPIQueue.Queue.Count > 0)
+            int MaxWait = 5000;
+            int CurrentWait = 0;
+            while (discordBot.DiscordAPIQueue.Queue.Count > 0 && CurrentWait < MaxWait)
             {
-                await Task.Delay(20);
+                await Task.Delay(200);
+                CurrentWait += 200;
             }
             discordBot.DiscordAPIQueue.IsProcessing = false;
             await Task.Delay(2000);

@@ -35,7 +35,7 @@ namespace ArchipelagoDiscordClientLegacy
             if (Config.BotToken.IsNullOrWhiteSpace()) { throw new Exception($"Bot key not valid"); }
             DiscordBot BotClient = new(Config)
             {
-                ConnectionCache = DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionConstructor>(), true)
+                ConnectionCache = new(DataFileUtilities.LoadObjectFromFileOrDefault(Constants.Paths.ConnectionCache, new Dictionary<ulong, SessionConstructor>(), true))
             };
 
             BotClient.Client.Ready += BotClient.commandRegistry.RegisterSlashCommands;

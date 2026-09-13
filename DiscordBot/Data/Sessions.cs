@@ -61,9 +61,8 @@ namespace ArchipelagoDiscordClientLegacy.Data
                     builder[i.Name] = ArchipelagoSessionFactory.CreateSession(ArchipelagoSession.Socket.Uri);
                     builder[i.Name].MessageLog.OnMessageReceived += (LogMessage message) =>
                     {
-                        if (message is not CommandResultLogMessage && message is not HintItemSendLogMessage) return;
-                        if (ArchipelagoMessageHelper.ShouldIgnoreMessage(message, this)) return;
-                        this.QueueMessageForChannel(message.FormatLogMessage(this));
+                        if (!ArchipelagoMessageHelper.ShouldIgnoreMessage(message, this, builder[i.Name]))
+                            this.QueueMessageForChannel(message.FormatLogMessage(this));
                     };
                 }
                 return builder.ToImmutable();

@@ -1,7 +1,9 @@
-﻿using Archipelago.MultiClient.Net.MessageLog.Messages;
-using ArchipelagoDiscordClientLegacy.Data;
-using System.Text.RegularExpressions;
+﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.MessageLog.Messages;
+using ArchipelagoDiscordClientLegacy.Data;
+using System.Linq;
+using System.Text.RegularExpressions;
 using TDMUtils;
 using static ArchipelagoDiscordClientLegacy.Data.MessageQueueData;
 using static ArchipelagoDiscordClientLegacy.Data.Sessions;
@@ -73,10 +75,22 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         /// <param name="logMessage">The log message to evaluate.</param>
         /// <param name="session">The active bot session.</param>
         /// <returns>True if the message should be ignored, otherwise false.</returns>
-        public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session)
+        public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session, ArchipelagoSession Player)
         {
+            bool IsAuxSession = Player != session.ArchipelagoSession;
+            Console.WriteLine(new string('=', 20));
+            Console.WriteLine($"Player: {Player.Players.ActivePlayer.Name}");
+            Console.WriteLine($"Is Aux: {IsAuxSession}");
+            Console.WriteLine($"Message Type: {logMessage.GetType()}");
+            Console.WriteLine($"Message Text: {string.Concat(logMessage.ToString().Take(20))}");
+            Console.WriteLine(new string('=', 20));
+
             if (string.IsNullOrWhiteSpace(logMessage.ToString()))
                 return true;
+
+            if (IsAuxSession && logMessage is not CommandResultLogMessage && logMessage is not HintItemSendLogMessage)
+                return true;
+
             switch (logMessage)
             {
                 case ServerChatLogMessage:

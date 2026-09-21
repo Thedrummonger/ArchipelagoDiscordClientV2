@@ -78,12 +78,6 @@ namespace ArchipelagoDiscordClientLegacy.Helpers
         public static bool ShouldIgnoreMessage(this LogMessage logMessage, ActiveBotSession session, ArchipelagoSession Player)
         {
             bool IsAuxSession = Player != session.ArchipelagoSession;
-            Console.WriteLine(new string('=', 20));
-            Console.WriteLine($"Player: {Player.Players.ActivePlayer.Name}");
-            Console.WriteLine($"Is Aux: {IsAuxSession}");
-            Console.WriteLine($"Message Type: {logMessage.GetType()}");
-            Console.WriteLine($"Message Text: {string.Concat(logMessage.ToString().Take(20))}");
-            Console.WriteLine(new string('=', 20));
 
             if (string.IsNullOrWhiteSpace(logMessage.ToString()))
                 return true;
